@@ -1,0 +1,11 @@
+# 含真实 API key, 永远不进 git
+config.json
+config.json.bak
+config.json.*
+
+# 运行时日志 (含 quota 数据, 隐私)
+logs/
+
+# Python 缓存
+__pycache__/
+*.pyc
