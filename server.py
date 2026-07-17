@@ -24,6 +24,7 @@ PORT = int(os.environ.get("PORT", "5000"))
 CONFIG_PATH = Path(__file__).parent / "config.json"
 LOG_PATH = Path(__file__).parent / "logs" / "last_quota.json"
 HISTORY_PATH = Path(__file__).parent / "logs" / "history.jsonl"
+ALERTS_LOG_PATH = Path(__file__).parent / "logs" / "alerts.jsonl"
 HISTORY_RETENTION_DAYS = 7
 
 # ---------- 内置模板 (4 个) ----------
@@ -80,7 +81,8 @@ def _default_config():
         "providers": [
             {**t, "key": "", "enabled": False}
             for t in BUILTIN_TEMPLATES
-        ]
+        ],
+        "alerts": [],
     }
 
 
@@ -279,6 +281,41 @@ def _jp(obj, path):
             return None
         cur = cur.get(p) if isinstance(cur, dict) else None
     return cur
+
+
+def append_alert_log(alert_id, provider_id, provider_label, ring_title, remaining_pct, channels):
+    """记录一条通知触发历史到 logs/alerts.jsonl"""
+    try:
+        ALERTS_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        rec = {
+            "ts": datetime.now().isoformat(timespec="seconds"),
+            "alert_id": alert_id,
+            "provider_id": provider_id,
+            "provider_label": provider_label,
+            "ring": ring_title,
+            "remaining_pct": remaining_pct,
+            "channels": channels,
+        }
+        with ALERTS_LOG_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        # lazy rotate (>1MB)
+        try:
+            if ALERTS_LOG_PATH.stat().st_size > 1024 * 1024:
+                _rotate_alerts()
+        except Exception:
+            pass
+    except Exception as e:
+        print(f"alert log failed: {e}")
+
+
+def _rotate_alerts():
+    """保留最近 500 条"""
+    lines = []
+    with ALERTS_LOG_PATH.open("r", encoding="utf-8") as f:
+        lines = [l for l in f if l.strip()]
+    with ALERTS_LOG_PATH.open("w", encoding="utf-8") as f:
+        for line in lines[-500:]:
+            f.write(line if line.endswith("\n") else line + "\n")
 
 
 def fetch_provider(p):
@@ -709,19 +746,111 @@ INDEX_HTML = r"""<!doctype html>
     display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   }
   .hdr-btn.icon-only { font-size: 15px; }
+  .ic { display: inline-block; vertical-align: middle; }
+  .ic-wrap { display: inline-flex; align-items: center; justify-content: center; }
+  .hdr-btn .ic { stroke: currentColor; }
+
+  /* 通知铃铛 + 角标 + 下拉面板 */
+  .bell-badge {
+    position: absolute; top: -4px; right: -4px;
+    background: var(--err-fg); color: white;
+    font-size: 10px; padding: 1px 5px; border-radius: 8px;
+    min-width: 14px; text-align: center; line-height: 1.4;
+    font-weight: 600;
+  }
+  #bell-btn { position: relative; }
+  .bell-panel {
+    position: absolute; top: 56px; right: 16px;
+    width: 360px; max-height: 480px; overflow-y: auto;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    z-index: 90; display: none;
+    font-size: 13px;
+  }
+  .bell-panel.open { display: block; }
+  .bell-panel h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .bell-panel .bp-item {
+    padding: 8px 4px; border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .bell-panel .bp-item:last-child { border-bottom: 0; }
+  .bell-panel .bp-item .bp-title { font-weight: 500; }
+  .bell-panel .bp-item .bp-meta { color: var(--muted); font-size: 11px; }
+  .bell-panel .bp-empty { color: var(--muted); padding: 24px 8px; text-align: center; }
+  .bell-panel .bp-grant {
+    margin-bottom: 10px; padding: 8px; border-radius: 8px;
+    background: var(--bg); text-align: center;
+  }
+
+  /* Settings tabs */
+  .settings-tabs {
+    display: flex; gap: 4px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-tabs button {
+    border: none; background: none; padding: 10px 14px;
+    font-size: 14px; color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent; border-radius: 0;
+    font-weight: 500;
+  }
+  .settings-tabs button.active { color: var(--focus); border-bottom-color: var(--focus); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* 通知规则卡片 */
+  .alert-row {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; margin-bottom: 10px; background: var(--card-alt);
+    display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: start;
+  }
+  .alert-row.disabled { opacity: 0.55; }
+  .alert-row .ar-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .alert-row .ar-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+  .alert-row .ar-line label { color: var(--muted); font-size: 12px; min-width: 56px; }
+  .alert-row select, .alert-row input[type="number"], .alert-row input[type="text"] {
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 8px; font-size: 13px; background: var(--card); color: var(--text);
+    font-family: inherit;
+  }
+  .alert-row input[type="number"] { width: 70px; }
+  .alert-row .ar-channels { display: flex; gap: 8px; font-size: 12px; color: var(--muted); }
+  .alert-row .ar-channels label { display: inline-flex; gap: 4px; align-items: center; min-width: 0; }
+  .alert-row .ar-actions { display: flex; flex-direction: column; gap: 6px; align-items: end; }
+  .alert-row .ar-actions button { padding: 4px 8px; font-size: 11px; }
+  .alert-add-btn {
+    margin-top: 8px;
+  }
 </style>
 </head>
 <body>
+<!-- 内联 SVG 图标库 (线性风格, stroke=currentColor 跟随主题) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-drag" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></symbol>
+  </defs>
+</svg>
 <header>
   <div>
       <h1>VibeRunOut <span class="subtitle">vibe 见底警告</span></h1>
     </div>
   <div class="actions">
     <span class="meta" id="updated">--</span>
-    <button class="hdr-btn icon-only" onclick="toggleTheme()" id="theme-btn" title="切换主题">🌙</button>
-    <button class="hdr-btn icon-only" onclick="enableNotifs()" id="notif-btn" title="开启告警通知">🔔</button>
-    <button class="hdr-btn icon-only" onclick="openSettings()" title="设置">⚙</button>
-    <button class="hdr-btn" id="refresh-btn" onclick="load()">🔄 Refresh</button>
+    <button class="hdr-btn icon-only" onclick="toggleTheme()" id="theme-btn" title="切换主题"></button>
+    <button class="hdr-btn icon-only" onclick="toggleBellPanel()" id="bell-btn" title="通知中心"><span class="bell-badge" id="bell-badge" style="display:none">0</span></button>
+    <button class="hdr-btn icon-only" onclick="openSettings()" title="设置"></button>
+    <button class="hdr-btn" id="refresh-btn" onclick="load()"></button>
   </div>
 </header>
 <main id="main"></main>
@@ -733,19 +862,25 @@ INDEX_HTML = r"""<!doctype html>
     <span class="close" onclick="closeSettings()">&times;</span>
     <h2>Settings</h2>
 
-    <h3>内置模板</h3>
-    <div class="template-grid" id="template-grid"></div>
+    <div class="settings-tabs">
+      <button class="active" id="tab-providers-btn" onclick="switchTab('providers')">Providers</button>
+      <button id="tab-alerts-btn" onclick="switchTab('alerts')"><span id="tab-alerts-icon"></span> 通知中心</button>
+    </div>
 
-    <h3>已启用 providers</h3>
-    <div id="provider-list"></div>
+    <div class="tab-panel active" id="tab-providers">
+      <h3>内置模板</h3>
+      <div class="template-grid" id="template-grid"></div>
 
-    <details class="custom-box">
-      <summary>+ Add custom provider (JSON)</summary>
-      <p style="color:var(--muted);font-size:12px;margin:8px 0">
-        粘贴一份 JSON 描述; <code>template: "custom"</code> 用 JSONPath 自动提取用量。
-        支持 <code>$.a.b.c</code> 这种点路径。
-      </p>
-      <textarea id="custom-json" placeholder='{
+      <h3>已启用 providers</h3>
+      <div id="provider-list"></div>
+
+      <details class="custom-box">
+        <summary>+ Add custom provider (JSON)</summary>
+        <p style="color:var(--muted);font-size:12px;margin:8px 0">
+          粘贴一份 JSON 描述; <code>template: "custom"</code> 用 JSONPath 自动提取用量。
+          支持 <code>$.a.b.c</code> 这种点路径。
+        </p>
+        <textarea id="custom-json" placeholder='{
   "id": "my-api",
   "label": "My API",
   "color": "#10b981",
@@ -765,8 +900,18 @@ INDEX_HTML = r"""<!doctype html>
     ]
   }
 }'></textarea>
-      <button onclick="addCustom()">Parse & add</button>
-    </details>
+        <button onclick="addCustom()">Parse & add</button>
+      </details>
+    </div>
+
+    <div class="tab-panel" id="tab-alerts">
+      <p style="color:var(--muted);font-size:12px;margin:0 0 12px">
+        阈值是<b>剩余 %</b>, 跟圆环方向一致。例: <code>剩 ≤ 20%</code> 表示剩余降到 20% 及以下时触发。
+        <code>*</code> 表示匹配所有 provider / 所有维度。<code>一次性</code> 触发后会自动禁用。
+      </p>
+      <div id="alert-list"></div>
+      <button class="alert-add-btn" onclick="addAlert()" id="alert-add-btn"></button>
+    </div>
 
     <div class="footer-actions">
       <button onclick="closeSettings()">Cancel</button>
@@ -775,9 +920,26 @@ INDEX_HTML = r"""<!doctype html>
   </div>
 </div>
 
+<div class="bell-panel" id="bell-panel">
+  <h3>通知记录</h3>
+  <div id="bell-grant" class="bp-grant" style="display:none">
+    <span id="bell-grant-text"></span> <button class="hdr-btn primary" onclick="enableNotifs()">开启</button>
+  </div>
+  <div id="bell-list"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
+// ---------- SVG 图标 ----------
+function icon(name, size = 16) {
+  return `<svg class="ic" width="${size}" height="${size}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+}
+function iconBtn(name, size = 16) {
+  // icon 外面包一个 .ic-wrap 让 svg 垂直居中
+  return `<span class="ic-wrap">${icon(name, size)}</span>`;
+}
+
 // ---------- 主题 (优先于其他脚本, 避免 FOUC) ----------
 (function initTheme() {
   const saved = localStorage.getItem("vibeout-theme");
@@ -785,16 +947,24 @@ INDEX_HTML = r"""<!doctype html>
   const dark = saved ? saved === "dark" : prefersDark;
   if (dark) document.documentElement.classList.add("dark");
   document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("theme-btn");
-    if (btn) btn.textContent = dark ? "☀️" : "🌙";
+    refreshHdrIcons(dark);
   });
 })();
+function refreshHdrIcons(dark) {
+  const themeBtn = document.getElementById("theme-btn");
+  if (themeBtn) themeBtn.innerHTML = icon(dark ? "sun" : "moon", 16);
+  const bellBtn = document.getElementById("bell-btn");
+  if (bellBtn) bellBtn.innerHTML = icon("bell", 16) + '<span class="bell-badge" id="bell-badge" style="display:none">0</span>';
+  const setBtn = document.querySelector('button[onclick="openSettings()"]');
+  if (setBtn) setBtn.innerHTML = icon("settings", 16);
+  const refreshBtn = document.getElementById("refresh-btn");
+  if (refreshBtn) refreshBtn.innerHTML = icon("refresh", 14) + ' Refresh';
+}
 function toggleTheme() {
   const html = document.documentElement;
   const isDark = html.classList.toggle("dark");
   localStorage.setItem("vibeout-theme", isDark ? "dark" : "light");
-  const btn = document.getElementById("theme-btn");
-  if (btn) btn.textContent = isDark ? "☀️" : "🌙";
+  refreshHdrIcons(isDark);
   // 已渲染的图表要重绘 (轴线颜色等)
   if (typeof refreshCharts === "function") refreshCharts();
 }
@@ -1011,7 +1181,7 @@ function ringBlock(r, accent) {
       </div>
       <div class="ring-meta">
         <div class="title">${escapeHtml(r.title)}</div>
-        ${r.resetText ? `<div class="reset">⏱ ${escapeHtml(r.resetText)}</div>` : ""}
+        ${r.resetText ? `<div class="reset">${icon("clock", 12)} ${escapeHtml(r.resetText)}</div>` : ""}
       </div>
     </div>
   `;
@@ -1061,7 +1231,7 @@ function cardHtml(p) {
           </details>` : "";
       const chartTitles = rings.map(r => r.title);
       const chartHtml = `<details class="more-folder" data-chart-pid="${escapeHtml(p.id)}" data-chart-titles="${escapeHtml(JSON.stringify(chartTitles))}" data-chart-accent="${escapeHtml(accent)}">
-            <summary>📈 趋势</summary>
+            <summary>${icon("chart", 14)} 趋势</summary>
             <div class="more-content">
               <div class="chart-wrap" id="chart-${escapeHtml(p.id)}">
                 <div class="chart-wrap empty">展开后加载...</div>
@@ -1108,16 +1278,18 @@ async function load() {
       // 空配置 / 全 disabled / 全无 key: 显示引导
       main.innerHTML = `
         <div class="card" style="grid-column:1/-1;text-align:center;padding:48px 24px">
-          <div style="font-size:48px;margin-bottom:16px">🎛️</div>
+          <div style="margin-bottom:16px">${icon("bell", 48)}</div>
           <h2 style="margin:0 0 8px">还没有配置任何 provider</h2>
-          <p style="color:var(--muted);margin:0 0 24px">点右上角 ⚙ Settings, 启用内置模板并填入 API key, 然后保存。</p>
-          <button class="hdr-btn primary" style="font-size:14px;padding:10px 20px" onclick="openSettings()">⚙ 打开 Settings</button>
+          <p style="color:var(--muted);margin:0 0 24px">点右上角设置图标, 启用内置模板并填入 API key, 然后保存。</p>
+          <button class="hdr-btn primary" style="font-size:14px;padding:10px 20px" onclick="openSettings()">${icon("settings", 14)} 打开 Settings</button>
         </div>`;
     } else {
       main.innerHTML = cards;
     }
     document.getElementById("updated").textContent =
       "updated " + new Date().toLocaleTimeString("zh-CN", {hour12: false});
+    // 每次刷新都重新拉 alerts 规则 (别处可能改了)
+    await refreshAlertsConfig();
     checkAndNotify(data.providers);
     // 每次刷新页面都让 history 重新拉一次 (不缓存)
     historyCache = null;
@@ -1181,6 +1353,16 @@ async function loadChart(pid, ringTitles, accent) {
     for (const r of p.rings) ringByName[r.title] = r.percent;
     points.push({ ts: rec.ts, rings: ringByName });
   }
+  // 只画 history 里至少有 1 个数据点的 title (避免画一条全空的线)
+  const availableTitles = [];
+  for (const title of ringTitles) {
+    const hasData = points.some(pt => pt.rings[title] != null);
+    if (hasData) availableTitles.push(title);
+  }
+  if (!availableTitles.length || !points.length) {
+    container.innerHTML = '<div class="chart-wrap empty">暂无历史数据, 等几分钟积累</div>';
+    return;
+  }
   // 渲染 canvas
   container.classList.remove("empty");
   container.innerHTML = '<canvas></canvas>';
@@ -1194,7 +1376,7 @@ async function loadChart(pid, ringTitles, accent) {
   const gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   const tickColor = isDark ? "#8b95a5" : "#6b7280";
 
-  const datasets = ringTitles.map((title, idx) => {
+  const datasets = availableTitles.map((title, idx) => {
     // 给每条线一点色相偏移
     const colors = [accent, "#f59e0b", "#10b981", "#ef4444"];
     const c = colors[idx % colors.length];
@@ -1245,13 +1427,149 @@ function refreshCharts() {
 async function openSettings() {
   document.getElementById("modal").classList.add("open");
   await loadConfigAndTemplates();
-  savedSnapshot = JSON.stringify(config);
+  await refreshAlertsConfig();
+  savedSnapshot = JSON.stringify({ providers: config.providers, alerts: alertsConfig });
   renderTemplateGrid();
   renderProviderList();
+  renderAlertList();
+  // 填静态按钮的图标
+  const addBtn = document.getElementById("alert-add-btn");
+  if (addBtn) addBtn.innerHTML = icon("plus", 14) + " 新建规则";
+  const tabAlertsIcon = document.getElementById("tab-alerts-icon");
+  if (tabAlertsIcon) tabAlertsIcon.innerHTML = icon("bell", 14);
+}
+
+function switchTab(name) {
+  document.querySelectorAll(".settings-tabs button").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name + "-btn").classList.add("active");
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+}
+
+// ---------- 通知规则 CRUD ----------
+function renderAlertList() {
+  const list = document.getElementById("alert-list");
+  if (!list) return;
+  if (!alertsConfig.length) {
+    list.innerHTML = '<div class="muted" style="padding:12px 0">还没有规则。点下面 "+ 新建规则" 添加。</div>';
+    return;
+  }
+  // 收集 provider / ring 选项 (从已配置的 provider 推断)
+  const providerOpts = config.providers.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.label || p.id)}</option>`).join("");
+  const ringOpts = ["5 小时", "周", "月"].map(r => `<option value="${r}">${r}</option>`).join("");
+
+  list.innerHTML = alertsConfig.map((a, i) => {
+    const disabled = a.enabled === false ? "disabled" : "";
+    const channels = a.channels || ["browser"];
+    return `
+      <div class="alert-row ${disabled}" data-idx="${i}">
+        <input type="checkbox" ${a.enabled !== false ? "checked" : ""} onchange="toggleAlert(${i})" title="启用" />
+        <div class="ar-body">
+          <div class="ar-line">
+            <input type="text" placeholder="规则名" value="${escapeHtml(a.label || "")}"
+                   oninput="updateAlert(${i}, 'label', this.value)" style="flex:1;min-width:120px" />
+          </div>
+          <div class="ar-line">
+            <label>provider</label>
+            <select onchange="updateAlert(${i}, 'provider_id', this.value)">
+              <option value="*" ${a.provider_id === "*" || !a.provider_id ? "selected" : ""}>所有 (*)</option>
+              ${providerOpts}
+            </select>
+            <label>维度</label>
+            <select onchange="updateAlert(${i}, 'ring', this.value)">
+              <option value="*" ${a.ring === "*" || !a.ring ? "selected" : ""}>所有 (*)</option>
+              ${ringOpts}
+            </select>
+          </div>
+          <div class="ar-line">
+            <label>剩 ≤</label>
+            <input type="number" value="${a.threshold ?? 20}" min="1" max="99"
+                   oninput="updateAlert(${i}, 'threshold', Number(this.value))" />%
+            <label>冷却</label>
+            <input type="number" value="${a.cooldown_min ?? 30}" min="1"
+                   oninput="updateAlert(${i}, 'cooldown_min', Number(this.value))" />min
+          </div>
+          <div class="ar-channels">
+            <label><input type="checkbox" ${channels.includes("browser") ? "checked" : ""}
+                   onchange="toggleAlertChannel(${i}, 'browser', this.checked)" /> 浏览器通知</label>
+            <label><input type="checkbox" ${channels.includes("log") ? "checked" : ""}
+                   onchange="toggleAlertChannel(${i}, 'log', this.checked)" /> 仅记录</label>
+            <label><input type="checkbox" ${a.one_shot ? "checked" : ""}
+                   onchange="updateAlert(${i}, 'one_shot', this.checked)" /> 一次性</label>
+          </div>
+        </div>
+        <div class="ar-actions">
+          <button onclick="testAlert(${i})" title="测试">${icon("bell", 12)}</button>
+          <button class="danger" onclick="removeAlert(${i})" title="删除">${icon("trash", 12)}</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // 修正 select 默认值 (用 textContent 不行, 改用 JS 设)
+  list.querySelectorAll(".alert-row").forEach((row, i) => {
+    const a = alertsConfig[i];
+    const pSel = row.querySelector('select:nth-of-type(1)');
+    const rSel = row.querySelector('select:nth-of-type(2)');
+    if (pSel && a.provider_id && a.provider_id !== "*") pSel.value = a.provider_id;
+    if (rSel && a.ring && a.ring !== "*") rSel.value = a.ring;
+  });
+}
+
+function toggleAlert(i) {
+  alertsConfig[i].enabled = !alertsConfig[i].enabled;
+  const row = document.querySelector(`.alert-row[data-idx="${i}"]`);
+  if (row) row.classList.toggle("disabled", !alertsConfig[i].enabled);
+}
+function updateAlert(i, key, value) {
+  alertsConfig[i][key] = value;
+}
+function toggleAlertChannel(i, channel, checked) {
+  const ch = alertsConfig[i].channels || (alertsConfig[i].channels = []);
+  if (checked && !ch.includes(channel)) ch.push(channel);
+  if (!checked) alertsConfig[i].channels = ch.filter(c => c !== channel);
+}
+function addAlert() {
+  const id = "alert-" + Date.now();
+  alertsConfig.push({
+    id,
+    enabled: true,
+    label: "新规则",
+    provider_id: "*",
+    ring: "*",
+    threshold: 20,
+    channels: ["browser"],
+    cooldown_min: 30,
+    one_shot: false,
+  });
+  renderAlertList();
+}
+function removeAlert(i) {
+  alertsConfig.splice(i, 1);
+  renderAlertList();
+}
+function testAlert(i) {
+  const a = alertsConfig[i];
+  if (!a) return;
+  const msg = `测试: ${a.label || "规则"} · 剩 ≤ ${a.threshold ?? 20}% 触发`;
+  if (isNotifGranted()) {
+    new Notification("🔔 VibeRunOut 测试", { body: msg });
+  }
+  showToast(msg);
+  // 同时写一条日志
+  fetch("/api/alerts/log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      alert_id: a.id, provider_id: "(test)", provider_label: "测试",
+      ring: a.ring || "*", remaining_pct: a.threshold ?? 20, channels: ["test"],
+    }),
+  }).catch(() => {});
 }
 
 function isDirty() {
-  return JSON.stringify(config) !== savedSnapshot;
+  const snapshot = { providers: config.providers, alerts: alertsConfig };
+  return JSON.stringify(snapshot) !== savedSnapshot;
 }
 
 function closeSettings() {
@@ -1305,7 +1623,7 @@ function renderProviderList() {
            ondrop="onDrop(event, ${i})"
            ondragend="onDragEnd(event)">
         <div class="pc-header">
-          <span class="pc-drag" title="拖拽排序">⠿</span>
+          <span class="pc-drag" title="拖拽排序">${icon("drag", 16)}</span>
           <input type="color" class="pc-color" value="${escapeHtml(p.color || "#2B7FFF")}"
                  oninput="updateField(${i}, 'color', this.value)" title="卡片颜色" />
           <input type="text" class="pc-label" data-field="label" placeholder="Provider 名称"
@@ -1315,7 +1633,7 @@ function renderProviderList() {
             <input type="checkbox" ${p.enabled ? "checked" : ""} onchange="toggleEnabled(${i})" />
             <span class="pc-toggle-slider"></span>
           </label>
-          <button class="pc-delete" onclick="removeProvider(${i})" title="删除">×</button>
+          <button class="pc-delete" onclick="removeProvider(${i})" title="删除">${icon("trash", 14)}</button>
         </div>
         <div class="pc-body">
           <label>URL</label>
@@ -1326,7 +1644,7 @@ function renderProviderList() {
           <div class="pc-key-wrap">
             <input type="password" data-field="key" placeholder="粘贴新 key 覆盖"
                    oninput="updateField(${i}, 'key', this.value)" />
-            <button class="pc-key-toggle" onclick="toggleKeyVisible(${i})">👁</button>
+            <button class="pc-key-toggle" onclick="toggleKeyVisible(${i})">${icon("eye", 12)}</button>
           </div>
 
           <label>Auth</label>
@@ -1461,19 +1779,26 @@ function addCustom() {
 }
 
 async function saveSettings() {
-  // 写回磁盘前不打印任何 key, 直接 POST
-  const res = await fetch("/api/config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
-  if (res.ok) {
+  // 并行保存 providers (POST /api/config) 和 alerts (POST /api/alerts)
+  const [resCfg, resAlerts] = await Promise.all([
+    fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    }),
+    fetch("/api/alerts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alerts: alertsConfig }),
+    }),
+  ]);
+  if (resCfg.ok && resAlerts.ok) {
     showToast("已保存");
-    savedSnapshot = JSON.stringify(config);  // 更新快照, 这样 closeSettings 不会再弹确认
+    savedSnapshot = JSON.stringify({ providers: config.providers, alerts: alertsConfig });
     closeSettings();
     load();
   } else {
-    const t = await res.text();
+    const t = await (resCfg.ok ? resAlerts : resCfg).text();
     showToast("保存失败: " + t, "error");
   }
 }
@@ -1490,9 +1815,27 @@ function showToast(msg, type) {
 load();
 setInterval(load, 60_000);
 
-// ---------- 桌面通知 (>80% 告警) ----------
-let notifEnabled = (Notification.permission === "granted");
-let notifLastFired = {};  // provider_id -> timestamp, 避免每分钟重复弹
+// ---------- 通知中心 ----------
+// alertsConfig: 从 /api/alerts 拉的规则数组
+// notifLastFired: alertId -> timestamp, 实现 cooldown
+let alertsConfig = [];
+let notifLastFired = {};
+let unreadCount = 0;
+let bellPanelOpen = false;
+
+async function refreshAlertsConfig() {
+  try {
+    const res = await fetch("/api/alerts");
+    const data = await res.json();
+    alertsConfig = data.alerts || [];
+  } catch (e) {
+    alertsConfig = [];
+  }
+}
+
+function isNotifGranted() {
+  return ("Notification" in window) && Notification.permission === "granted";
+}
 
 function enableNotifs() {
   if (!("Notification" in window)) {
@@ -1500,15 +1843,15 @@ function enableNotifs() {
     return;
   }
   if (Notification.permission === "granted") {
-    notifEnabled = true;
     showToast("通知已开启");
+    updateBellGrant();
   } else if (Notification.permission !== "denied") {
     Notification.requestPermission().then(p => {
       if (p === "granted") {
-        notifEnabled = true;
         showToast("通知已开启");
+        updateBellGrant();
       } else {
-        showToast("已拒绝, 不会再弹", "error");
+        showToast("已拒绝, 请到浏览器设置里允许通知", "error");
       }
     });
   } else {
@@ -1516,32 +1859,146 @@ function enableNotifs() {
   }
 }
 
-function checkAndNotify(providers) {
-  if (!notifEnabled) return;
+// 遍历 providers, 按 alerts 规则匹配并触发
+async function checkAndNotify(providers) {
+  if (!alertsConfig.length) await refreshAlertsConfig();
+  if (!alertsConfig.length) return;
   const now = Date.now();
-  const COOLDOWN = 10 * 60 * 1000;  // 同一 provider 10 分钟内只弹一次
-  for (const p of providers) {
-    if (!p.ok || !p.data) continue;
-    const sections = normalize(p, p.data);
-    if (!sections.length || sections[0].kind !== "card") continue;
-    const rings = sections[0].rings || [];
-    for (const r of rings) {
-      const remaining = 100 - (r.percent || 0);
-      if (remaining <= 20) {
-        const key = `${p.id}:${r.title}`;
-        if (notifLastFired[key] && now - notifLastFired[key] < COOLDOWN) continue;
+  const fired = [];  // 本次触发记录
+  for (const alert of alertsConfig) {
+    if (!alert.enabled) continue;
+    for (const p of providers) {
+      if (!p.ok || !p.data) continue;
+      // provider 过滤
+      if (alert.provider_id && alert.provider_id !== "*" && alert.provider_id !== p.id) continue;
+      const sections = normalize(p, p.data);
+      if (!sections.length || sections[0].kind !== "card") continue;
+      const rings = sections[0].rings || [];
+      for (const r of rings) {
+        // ring 过滤
+        if (alert.ring && alert.ring !== "*" && alert.ring !== r.title) continue;
+        const remaining = 100 - (r.percent || 0);
+        if (remaining > (alert.threshold ?? 20)) continue;
+        // cooldown
+        const cooldownMs = (alert.cooldown_min ?? 30) * 60 * 1000;
+        const key = `${alert.id}:${p.id}:${r.title}`;
+        if (notifLastFired[key] && now - notifLastFired[key] < cooldownMs) continue;
         notifLastFired[key] = now;
-        try {
-          new Notification("⚠️ VibeRunOut 告警", {
-            body: `${p.label} · ${r.title} 只剩 ${remaining}%${r.resetText ? "\n⏱ " + r.resetText : ""}`,
-            tag: key,
-          });
-        } catch (e) {}
-        break;  // 同一 provider 只取最高的那条
+        // 触发
+        const channels = alert.channels || ["browser"];
+        const body = `${p.label} · ${r.title} 只剩 ${remaining}%${r.resetText ? "\\n" + r.resetText : ""}`;
+        if (channels.includes("browser") && isNotifGranted()) {
+          try {
+            new Notification("⚠️ VibeRunOut 告警", { body, tag: key });
+          } catch (e) {}
+        }
+        fired.push({
+          alert_id: alert.id,
+          alert_label: alert.label || `${p.label} ${r.title}`,
+          provider_id: p.id,
+          provider_label: p.label,
+          ring: r.title,
+          remaining_pct: remaining,
+          channels,
+          ts: new Date().toISOString(),
+        });
+        // 一次性触发自动禁用
+        if (alert.one_shot) {
+          alert.enabled = false;
+          // POST 回去 (不阻塞)
+          fetch("/api/alerts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ alerts: alertsConfig }),
+          }).catch(() => {});
+        }
+        break;  // 同一 provider 只触发最高那条
       }
     }
   }
+  if (fired.length) {
+    // 写日志 (后端记) + 更新铃铛角标
+    for (const f of fired) {
+      // 后端 append_alert_log 需要触发, 这里用一个轻量 endpoint
+      try {
+        await fetch("/api/alerts/log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(f),
+        });
+      } catch (e) {}
+    }
+    unreadCount += fired.length;
+    updateBellBadge();
+    showToast(`🔔 ${fired.length} 条告警触发`);
+    if (bellPanelOpen) renderBellList();
+  }
 }
+
+// ---------- 铃铛角标 + 面板 ----------
+function updateBellBadge() {
+  const badge = document.getElementById("bell-badge");
+  if (!badge) return;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 99 ? "99+" : unreadCount;
+    badge.style.display = "";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+function updateBellGrant() {
+  const grant = document.getElementById("bell-grant");
+  if (!grant) return;
+  grant.style.display = isNotifGranted() ? "none" : "";
+  const txt = document.getElementById("bell-grant-text");
+  if (txt) txt.innerHTML = icon("bell", 14) + " 系统通知未开启";
+}
+
+async function toggleBellPanel() {
+  bellPanelOpen = !bellPanelOpen;
+  const panel = document.getElementById("bell-panel");
+  panel.classList.toggle("open", bellPanelOpen);
+  if (bellPanelOpen) {
+    updateBellGrant();
+    await renderBellList();
+    unreadCount = 0;
+    updateBellBadge();
+  }
+}
+
+async function renderBellList() {
+  const list = document.getElementById("bell-list");
+  if (!list) return;
+  try {
+    const res = await fetch("/api/alerts/log");
+    const data = await res.json();
+    const log = data.log || [];
+    if (!log.length) {
+      list.innerHTML = '<div class="bp-empty">还没有告警记录。<br>去 Settings → 🔔 通知中心 配置规则。</div>';
+      return;
+    }
+    list.innerHTML = log.map(item => `
+      <div class="bp-item">
+        <div class="bp-title">⚠️ ${escapeHtml(item.provider_label || item.provider_id)} · ${escapeHtml(item.ring)} 只剩 ${item.remaining_pct}%</div>
+        <div class="bp-meta">${new Date(item.ts).toLocaleString("zh-CN", {hour12: false})} · ${escapeHtml((item.channels || []).join(","))}</div>
+      </div>
+    `).join("");
+  } catch (e) {
+    list.innerHTML = '<div class="bp-empty">加载失败</div>';
+  }
+}
+
+// 点击外部关闭铃铛面板
+document.addEventListener("click", (e) => {
+  if (!bellPanelOpen) return;
+  const panel = document.getElementById("bell-panel");
+  const btn = document.getElementById("bell-btn");
+  if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+    bellPanelOpen = false;
+    panel.classList.remove("open");
+  }
+});
 </script>
 </body>
 </html>
@@ -1652,6 +2109,32 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, BUILTIN_TEMPLATES)
             return
 
+        if self.path == "/api/alerts":
+            cfg = get_config()
+            self._send_json(200, {"alerts": cfg.get("alerts", [])})
+            return
+
+        if self.path == "/api/alerts/log":
+            out = []
+            try:
+                if ALERTS_LOG_PATH.exists():
+                    with ALERTS_LOG_PATH.open("r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                out.append(json.loads(line))
+                            except Exception:
+                                continue
+            except Exception as e:
+                self._send_json(500, {"error": str(e)})
+                return
+            # 倒序 (最新在前), 最多 100 条
+            out.reverse()
+            self._send_json(200, {"log": out[:100]})
+            return
+
         self.send_error(404)
 
     def do_POST(self):
@@ -1687,8 +2170,45 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"status": "ok"})
             return
 
-        self.send_error(404)
+        if self.path == "/api/alerts":
+            try:
+                payload = json.loads(self._read_body() or b"{}")
+            except Exception as e:
+                self._send_json(400, {"error": f"invalid json: {e}"})
+                return
+            if not isinstance(payload, dict) or "alerts" not in payload:
+                self._send_json(400, {"error": "missing alerts"})
+                return
+            with _config_lock:
+                # 只更新 alerts 字段, 保留 providers/key 不动
+                cfg = get_config()
+                cfg["alerts"] = payload["alerts"]
+                CONFIG_PATH.write_text(
+                    json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+                reload_config()
+            self._send_json(200, {"status": "ok"})
+            return
 
+        if self.path == "/api/alerts/log":
+            # 前端触发告警时, POST 一条日志, 后端 append 到 alerts.jsonl
+            try:
+                payload = json.loads(self._read_body() or b"{}")
+            except Exception as e:
+                self._send_json(400, {"error": f"invalid json: {e}"})
+                return
+            append_alert_log(
+                alert_id=payload.get("alert_id", ""),
+                provider_id=payload.get("provider_id", ""),
+                provider_label=payload.get("provider_label", ""),
+                ring_title=payload.get("ring", ""),
+                remaining_pct=payload.get("remaining_pct"),
+                channels=payload.get("channels", []),
+            )
+            self._send_json(200, {"status": "ok"})
+            return
+
+        self.send_error(404)
 
 def main():
     print(f"Quota Dashboard → http://localhost:{PORT}")

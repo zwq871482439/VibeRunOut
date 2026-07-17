@@ -13,44 +13,11 @@
 
 <p align="center">一个纯 Python stdlib 写的本地 dashboard, 统一监控各家 AI Coding Plan (zai / MiniMax / Kimi / 自定义) 的剩余配额。环表示<b>剩余</b>, 用一点少一点, 见底变红。</p>
 
-<!-- 卡片预览 -->
-<div align="center">
+<p align="center">
+  <img src="dashboard-1.png" alt="VibeRunOut dashboard screenshot" width="780">
+</p>
 
-<table border="0" cellspacing="12" cellpadding="0">
-<tr>
-<td align="center" bgcolor="#ffffff" style="border:1px solid #e6e6ea;border-radius:14px;padding:20px;width:280px;font-family:-apple-system,sans-serif">
-<b>● Z.ai / 智谱 GLM</b> <code>🟢 通畅</code><br><br>
-<b>剩 99%</b> · 5 小时<br>
-<code>⏱ 4h58m 后</code><br><br>
-<b>剩 98%</b> · 周<br>
-<code>⏱ 6天15小时 后</code>
-</td>
-<td align="center" bgcolor="#ffffff" style="border:1px solid #e6e6ea;border-radius:14px;padding:20px;width:280px;font-family:-apple-system,sans-serif">
-<b>● MiniMax Coding Plan</b> <code>🟢 通畅</code><br><br>
-<b>剩 100%</b> · 5 小时<br>
-<code>⏱ 4h11m 后</code><br><br>
-<b>剩 82%</b> · 周<br>
-<code>⏱ 1天23小时 后</code>
-</td>
-</tr>
-<tr>
-<td align="center" bgcolor="#ffffff" style="border:1px solid #e6e6ea;border-radius:14px;padding:20px;width:280px;font-family:-apple-system,sans-serif">
-<b>● Kimi Code</b> <code>🟢 通畅</code><br><br>
-<b>剩 95%</b> · 5 小时<br>
-<code>⏱ 11分钟 后</code><br><br>
-<b>剩 87%</b> · 月<br>
-<code>⏱ 6天14小时 后</code>
-</td>
-<td align="center" bgcolor="#fff1f2" style="border:1px solid #fecdd3;border-radius:14px;padding:20px;width:280px;font-family:-apple-system,sans-serif">
-<b>● My Custom</b> <code>🔴 HTTP 401</code><br><br>
-<span style="color:#b91c1c">⚠ HTTP 401: Unauthorized</span>
-</td>
-</tr>
-</table>
-
-<sub>👆 上图是 GitHub 渲染的静态预览, 实际 dashboard 是带动画圆环 + 趋势折线图的交互页面</sub>
-
-</div>
+<sub>👆 实际运行截图: 圆环倒计时 + 剩余 vibe % + 重置倒计时</sub>
 
 ---
 
