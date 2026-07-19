@@ -2083,7 +2083,11 @@ else currentDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 function applyTheme() {
   try {
     const html = document.documentElement;
-    html.className = "";
+    // 移除旧主题/accent class, 保留其他 (如 dark, custom)
+    html.className = html.className
+      .split(/\s+/)
+      .filter(c => c && !/^theme-/.test(c) && !/^accent-/.test(c))
+      .join(" ");
     html.classList.add(`theme-${currentTheme}`);
     html.classList.add(`accent-${currentAccent}`);
     if (currentDark) html.classList.add("dark");
