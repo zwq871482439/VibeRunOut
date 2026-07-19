@@ -1581,6 +1581,7 @@ function fmtRelative(ms) {
   const totalMin = Math.floor(sec / 60);
   const totalHr = Math.floor(totalMin / 60);
   const days = Math.floor(totalHr / 24);
+  if (days >= 3) return `${days}天后重置`;
   if (days >= 1) return `${days}天${totalHr % 24}小时后重置`;
   if (totalHr >= 1) return `${totalHr}h${totalMin % 60}m后重置`;
   return `${totalMin}分钟后重置`;
@@ -1686,7 +1687,8 @@ function normalizeKimi(raw) {
     const limit = Number(payload.usage.limit);
     const used = Number(payload.usage.used || 0);
     const pct = limit > 0 ? Math.round(used / limit * 100) : 0;
-    rings.push({ title: "月", percent: pct, resetText: fmtReset(payload.usage.resetTime, "月") });
+    // Kimi 的 usage.resetTime 是 7 天后, 实际是周配额
+    rings.push({ title: "周", percent: pct, resetText: fmtReset(payload.usage.resetTime, "周") });
   }
   const extras = [];
   if (payload.parallel?.limit) extras.push({ name: "并发限制", value: payload.parallel.limit });
