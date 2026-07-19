@@ -2165,28 +2165,6 @@ function renderSummaryWidget(providers) {
   const ok = providers.filter(p => p.ok);
   const enabledOk = ok.filter(p => config.providers.find(x => x.id === p.id)?.enabled);
   if (!enabledOk.length) return "";
-  // 算各 provider 5h 剩余
-  const fiveHourRemainings = enabledOk.map(p => {
-    const s = normalize(p, p.data);
-    if (!s.length || s[0].kind !== "card") return null;
-    const ring5h = (s[0].rings || []).find(r => r.title === "5 小时");
-    return ring5h ? (100 - (ring5h.percent || 0)) : null;
-  }).filter(v => v != null);
-  const avg5h = fiveHourRemainings.length
-    ? Math.round(fiveHourRemainings.reduce((a, b) => a + b, 0) / fiveHourRemainings.length)
-    : null;
-  // 最危险的 ring
-  let topDanger = null;
-  for (const p of enabledOk) {
-    const s = normalize(p, p.data);
-    if (!s.length || s[0].kind !== "card") continue;
-    for (const r of (s[0].rings || [])) {
-      const rem = 100 - (r.percent || 0);
-      if (!topDanger || rem < topDanger.remaining) {
-        topDanger = { provider: p, ring: r, remaining: rem };
-      }
-    }
-  }
   // 同步状态 (只反映 API 拉取, 不反映额度)
   const syncFailed = providers.filter(p => p.config?.enabled && !p.ok && p.error !== "no key configured").length;
   let statusLine;
@@ -2195,14 +2173,6 @@ function renderSummaryWidget(providers) {
   } else {
     statusLine = `<span style="color:var(--success)">同步正常</span>`;
   }
-  // 额度状态 (单独行, 区分清楚)
-  const dangerCount = enabledOk.filter(p => minRemainingOf(p) < 20).length;
-  const warnCount = enabledOk.filter(p => { const r = minRemainingOf(p); return r >= 20 && r < 50; }).length;
-  const healthy = enabledOk.length - dangerCount - warnCount;
-  let quotaLine;
-  if (dangerCount > 0) quotaLine = `<span style="color:var(--danger)">${dangerCount} 家见底</span> · <span style="color:var(--warning)">${warnCount} 家略紧</span> · ${healthy} 家通畅`;
-  else if (warnCount > 0) quotaLine = `<span style="color:var(--warning)">${warnCount} 家略紧</span> · ${healthy} 家通畅`;
-  else quotaLine = `${healthy} 家通畅`;
   return `
     <div class="card summary-card" style="grid-column:1/-1">
       <div class="summary-header">
@@ -2210,12 +2180,38 @@ function renderSummaryWidget(providers) {
         <span class="summary-stats">${statusLine}</span>
       </div>
       <div class="summary-body">
-        ${avg5h != null ? `<div class="summary-stat"><span class="summary-stat-label">5h 平均剩余</span><span class="summary-stat-pct" style="color:${avg5h < 20 ? 'var(--danger)' : avg5h < 50 ? 'var(--warning)' : 'var(--success)'}">${avg5h}%</span></div>` : ""}
-        ${topDanger ? `<div class="summary-stat"><span class="summary-stat-label">最危险</span><span class="summary-stat-detail">${escapeHtml(topDanger.provider.label)} · ${escapeHtml(topDanger.ring.title)} 剩 ${topDanger.remaining}%${topDanger.ring.resetText ? ' (' + escapeHtml(topDanger.ring.resetText) + ')' : ''}</span></div>` : ""}
-        <div class="summary-stat"><span class="summary-stat-label">额度</span><span class="summary-stat-detail">${quotaLine}</span></div>
+        ${ringTier(enabledOk, "5 小时")}
+        ${ringTier(enabledOk, "周")}
       </div>
     </div>
   `;
+}
+
+// 给指定 ring 标题画一排: 按剩余% 分三档 (不足/还行/充足), 列出 provider 名
+function ringTier(enabledOk, ringTitle) {
+  // 收集各 provider 该 ring 的剩余%
+  const buckets = { danger: [], warn: [], ok: [] };
+  for (const p of enabledOk) {
+    const s = normalize(p, p.data);
+    if (!s.length || s[0].kind !== "card") continue;
+    const r = (s[0].rings || []).find(x => x.title === ringTitle);
+    if (!r) continue;
+    const rem = 100 - (r.percent || 0);
+    const name = escapeHtml(p.label || p.id);
+    if (rem < 20) buckets.danger.push({ name, pct: rem });
+    else if (rem < 50) buckets.warn.push({ name, pct: rem });
+    else buckets.ok.push({ name, pct: rem });
+  }
+  const total = buckets.danger.length + buckets.warn.length + buckets.ok.length;
+  if (!total) return "";
+  const line = [];
+  if (buckets.danger.length) line.push(`<span style="color:var(--danger)">不足 ${buckets.danger.map(b => `${b.name} ${b.pct}%`).join(", ")}</span>`);
+  if (buckets.warn.length) line.push(`<span style="color:var(--warning)">还行 ${buckets.warn.map(b => `${b.name} ${b.pct}%`).join(", ")}</span>`);
+  if (buckets.ok.length) line.push(`<span style="color:var(--success)">充足 ${buckets.ok.map(b => `${b.name} ${b.pct}%`).join(", ")}</span>`);
+  return `<div class="summary-stat">
+    <span class="summary-stat-label">${escapeHtml(ringTitle)}</span>
+    <span class="summary-stat-detail">${line.join(" · ")}</span>
+  </div>`;
 }
 
 function renderTrendCard(providers) {
