@@ -728,11 +728,14 @@ INDEX_HTML = r"""<!doctype html>
   }
   header {
     padding: 24px 32px 12px;
-    display: flex; align-items: baseline; justify-content: space-between;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px;
   }
   header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
-  header .meta { color: var(--muted); font-size: 12px; }
+  header .meta { color: var(--muted); font-size: 12px; font-family: var(--font-mono); }
   header .actions { display: flex; gap: 8px; align-items: center; }
+  header .hdr-left { display: flex; flex-direction: column; gap: 4px; }
+  header .hdr-meta { display: flex; align-items: center; gap: 8px; }
   main {
     max-width: 1100px;
     margin: 0 auto;
@@ -1370,11 +1373,11 @@ INDEX_HTML = r"""<!doctype html>
   </defs>
 </svg>
 <header>
-  <div>
-      <h1>VibeRunOut <span class="subtitle">vibe 见底警告</span></h1>
-    </div>
+  <div class="hdr-left">
+    <h1>VibeRunOut <span class="subtitle">vibe 见底警告</span></h1>
+    <div class="hdr-meta"><span class="meta" id="updated">--</span></div>
+  </div>
   <div class="actions">
-    <span class="meta" id="updated">--</span>
     <button class="hdr-btn icon-only" onclick="toggleTheme()" id="theme-btn" title="切换主题"></button>
     <button class="hdr-btn icon-only" onclick="toggleBellPanel()" id="bell-btn" title="通知中心"><span class="bell-badge" id="bell-badge" style="display:none">0</span></button>
     <button class="hdr-btn icon-only" onclick="openSettings()" title="设置"></button>
