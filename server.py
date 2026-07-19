@@ -91,10 +91,10 @@ def _default_config():
         # 拖拽调整顺序, 取消勾选隐藏
         "widgets": [
             {"id": "summary",          "type": "summary",  "enabled": True},
-            {"id": "provider:zai",     "type": "provider", "provider_id": "zai",     "enabled": True},
-            {"id": "provider:minimax", "type": "provider", "provider_id": "minimax", "enabled": True},
-            {"id": "provider:kimi",    "type": "provider", "provider_id": "kimi",    "enabled": True},
-            {"id": "trend",            "type": "trend",    "enabled": True},
+            {"id": "provider:zai",     "type": "provider", "provider_id": "zai",     "enabled": True, "ring_display": "ring"},
+            {"id": "provider:minimax", "type": "provider", "provider_id": "minimax", "enabled": True, "ring_display": "ring"},
+            {"id": "provider:kimi",    "type": "provider", "provider_id": "kimi",    "enabled": True, "ring_display": "ring"},
+            {"id": "trend",            "type": "trend",    "enabled": True, "trend_mode": "chart", "trend_default_ring": "*", "trend_default_providers": "all"},
         ],
     }
 
@@ -1380,6 +1380,19 @@ INDEX_HTML = r"""<!doctype html>
   .widget-row .widget-type { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
   .widget-row.dragging { opacity: 0.4; }
   .widget-row.drag-over { border-color: var(--focus); border-style: dashed; }
+  .widget-row.disabled { opacity: 0.5; }
+  .widget-settings {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    padding: 6px 8px 6px 32px;
+    margin: 2px 0 8px 0;
+    font-size: 12px; color: var(--muted);
+  }
+  .widget-settings label { display: inline-flex; align-items: center; gap: 4px; }
+  .widget-settings select {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 3px 6px; background: var(--card); color: var(--text);
+    font-size: 12px; font-family: inherit;
+  }
 
   /* 显示选项 (Settings → Providers 顶部) */
   .display-row {
@@ -1491,47 +1504,9 @@ INDEX_HTML = r"""<!doctype html>
       <h3>组件 (Widgets)</h3>
       <p style="color:var(--muted);font-size:11px;margin:0 0 8px">dashboard 上显示哪些卡 + 顺序。拖拽手柄调整顺序, 取消勾选隐藏。</p>
       <div id="widgets-list"></div>
-
-      <h3>限额指示</h3>
-      <p style="color:var(--muted);font-size:11px;margin:0 0 8px">每张卡片里 5 小时 / 周 / 月 的显示样式</p>
-      <div class="display-row">
-        <div class="display-control">
-          <label>显示样式</label>
-          <select id="ring-display" onchange="updateDisplayPref('ring_display', this.value)">
-            <option value="ring">圆环 (Ring)</option>
-            <option value="bar">进度条 (Bar)</option>
-            <option value="text">纯文字 (Text)</option>
-          </select>
-        </div>
-      </div>
-
-      <h3>趋势卡片</h3>
-      <p style="color:var(--muted);font-size:11px;margin:0 0 8px">底部"趋势"组件卡片的设置</p>
-      <div class="display-row">
-        <div class="display-control">
-          <label>显示模式</label>
-          <select id="trend-mode" onchange="updateDisplayPref('trend_mode', this.value)">
-            <option value="chart">折线图 (Chart)</option>
-            <option value="hidden">隐藏趋势卡片</option>
-          </select>
-        </div>
-        <div class="display-control">
-          <label>默认维度</label>
-          <select id="trend-default-ring" onchange="updateDisplayPref('trend_default_ring', this.value)">
-            <option value="*">所有 (多选 chip)</option>
-            <option value="5 小时">5 小时</option>
-            <option value="周">周</option>
-            <option value="月">月</option>
-          </select>
-        </div>
-        <div class="display-control">
-          <label>默认 provider</label>
-          <select id="trend-default-providers" onchange="updateDisplayPref('trend_default_providers', this.value)">
-            <option value="all">所有已启用</option>
-            <option value="first">第一个 (按顺序)</option>
-          </select>
-        </div>
-      </div>
+      <p style="color:var(--muted);font-size:11px;margin:14px 0 0;padding-top:12px;border-top:1px dashed var(--border)">
+        每行 widget 可单独配显示样式 (圆环/进度条/文字), 趋势 widget 还可设默认维度和 provider。
+      </p>
     </div>
 
     <div class="tab-panel" id="tab-theme">
@@ -1885,8 +1860,11 @@ function cardHtml(p, extraClass = "") {
         return order(a.title) - order(b.title);
       });
       const extras = card.extras || [];
+      // per-provider ring_display: 从 widget 配置读
+      const w = config.widgets.find(x => x.type === "provider" && x.provider_id === p.id);
+      const display = (w && w.ring_display) || config.ring_display || "ring";
       const ringHtml = rings.length
-        ? `<div class="rings-row rings-display-${config.ring_display || 'ring'}">${rings.map(r => ringBlock(r, accent, config.ring_display)).join("")}</div>` : "";
+        ? `<div class="rings-row rings-display-${display}">${rings.map(r => ringBlock(r, accent, display)).join("")}</div>` : "";
       const extrasHtml = extras.length
         ? `<details class="more-folder">
             <summary>更多</summary>
@@ -2232,7 +2210,10 @@ function renderSummaryWidget(providers) {
 }
 
 function renderTrendCard(providers) {
-  if (config.trend_mode === "hidden") return "";
+  // 从 trend widget 读 mode (per-widget 设置优先)
+  const trendW = config.widgets.find(x => x.type === "trend");
+  const trendMode = (trendW && trendW.trend_mode) || config.trend_mode || "chart";
+  if (trendMode === "hidden") return "";
   return `
     <div class="card trend-card">
       <div class="tc-header">
@@ -2257,15 +2238,18 @@ function renderTrendCard(providers) {
 
 function initTrendCard(providers) {
   const okProviders = providers.filter(p => p.ok);
-  // 默认选中: 用 config.trend_default_providers 决定
+  // 默认选中: 从 trend widget 读 (per-widget 优先), 没就 fallback 全局 config
+  const trendW = config.widgets.find(x => x.type === "trend");
+  const defaultProv = (trendW && trendW.trend_default_providers) || config.trend_default_providers || "all";
+  const defaultRing = (trendW && trendW.trend_default_ring) || config.trend_default_ring || "*";
   if (okProviders.length && !trendSelected.providers.size) {
-    if (config.trend_default_providers === "first") {
+    if (defaultProv === "first") {
       trendSelected.providers.add(okProviders[0].id);
     } else {
       // "all": 全部
       for (const p of okProviders) trendSelected.providers.add(p.id);
     }
-    // 默认维度: 用 config.trend_default_ring 决定
+    // 默认维度
     const allRings = new Set();
     for (const p of okProviders) {
       const sections = normalize(p, p.data);
@@ -2273,10 +2257,10 @@ function initTrendCard(providers) {
         for (const r of (sections[0].rings || [])) allRings.add(r.title);
       }
     }
-    if (config.trend_default_ring === "*") {
+    if (defaultRing === "*") {
       trendSelected.rings = allRings;
-    } else if (allRings.has(config.trend_default_ring)) {
-      trendSelected.rings = new Set([config.trend_default_ring]);
+    } else if (allRings.has(defaultRing)) {
+      trendSelected.rings = new Set([defaultRing]);
     } else {
       trendSelected.rings = allRings;
     }
@@ -2496,11 +2480,7 @@ function updateDisplayPref(key, value) {
 }
 
 function syncDisplaySelects() {
-  const setSel = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-  setSel("ring-display", config.ring_display || "ring");
-  setSel("trend-mode", config.trend_mode || "chart");
-  setSel("trend-default-ring", config.trend_default_ring || "*");
-  setSel("trend-default-providers", config.trend_default_providers || "all");
+  // ring_display / trend_mode / trend_default_* 现在跟 widget 行走, 这里留个空
 }
 
 // ---------- 组件 (Widgets) 列表 ----------
@@ -2517,8 +2497,10 @@ function widgetLabel(w) {
 function renderWidgetsList() {
   const list = document.getElementById("widgets-list");
   if (!list) return;
-  list.innerHTML = config.widgets.map((w, i) => `
-    <div class="widget-row" data-idx="${i}"
+  list.innerHTML = config.widgets.map((w, i) => {
+    const settings = widgetSettingsHTML(w, i);
+    return `
+    <div class="widget-row ${w.enabled ? '' : 'disabled'}" data-idx="${i}"
          draggable="true"
          ondragstart="onWidgetDragStart(event, ${i})"
          ondragover="onWidgetDragOver(event, ${i})"
@@ -2528,14 +2510,74 @@ function renderWidgetsList() {
       <span class="widget-drag">${icon("drag", 14)}</span>
       <span class="widget-name">${escapeHtml(widgetLabel(w))}</span>
       <span class="widget-type">${escapeHtml(w.type)}</span>
-    </div>
-  `).join("");
+    </div>${settings}`;
+  }).join("");
+}
+
+function widgetSettingsHTML(w, i) {
+  // 每个 provider widget 自带 ring_display 下拉
+  if (w.type === "provider") {
+    const cur = w.ring_display || config.ring_display || "ring";
+    return `<div class="widget-settings">
+      <label>显示 <select onchange="updateWidgetField(${i}, 'ring_display', this.value)">
+        <option value="ring" ${cur === "ring" ? "selected" : ""}>圆环</option>
+        <option value="bar" ${cur === "bar" ? "selected" : ""}>进度条</option>
+        <option value="text" ${cur === "text" ? "selected" : ""}>文字</option>
+      </select></label>
+    </div>`;
+  }
+  // 趋势 widget 自带 mode / ring / provider 设置
+  if (w.type === "trend") {
+    const mode = w.trend_mode || config.trend_mode || "chart";
+    const ring = w.trend_default_ring || config.trend_default_ring || "*";
+    const prov = w.trend_default_providers || config.trend_default_providers || "all";
+    return `<div class="widget-settings">
+      <label>显示 <select onchange="updateWidgetField(${i}, 'trend_mode', this.value)">
+        <option value="chart" ${mode === "chart" ? "selected" : ""}>折线图</option>
+        <option value="hidden" ${mode === "hidden" ? "selected" : ""}>隐藏</option>
+      </select></label>
+      <label>默认维度 <select onchange="updateWidgetField(${i}, 'trend_default_ring', this.value)">
+        <option value="*" ${ring === "*" ? "selected" : ""}>全部</option>
+        <option value="5 小时" ${ring === "5 小时" ? "selected" : ""}>5 小时</option>
+        <option value="周" ${ring === "周" ? "selected" : ""}>周</option>
+        <option value="月" ${ring === "月" ? "selected" : ""}>月</option>
+      </select></label>
+      <label>默认 provider <select onchange="updateWidgetField(${i}, 'trend_default_providers', this.value)">
+        <option value="all" ${prov === "all" ? "selected" : ""}>所有</option>
+        <option value="first" ${prov === "first" ? "selected" : ""}>第一个</option>
+      </select></label>
+    </div>`;
+  }
+  return "";
+}
+
+function updateWidgetField(i, key, value) {
+  config.widgets[i][key] = value;
+  // 即时生效
+  if (currentProviders.length) load();
+  // 持久化
+  fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  });
+  // 趋势默认维度/provider 改了, 重置 trendSelected
+  if (key === "trend_default_ring" || key === "trend_default_providers") {
+    trendSelected = { providers: new Set(), rings: new Set() };
+    if (currentProviders.length) load();
+  }
 }
 
 function toggleWidget(i) {
   config.widgets[i].enabled = !config.widgets[i].enabled;
   renderWidgetsList();
   if (currentProviders.length) load();  // 重新渲染
+  // 立即持久化 (用户重启 dashboard 还在)
+  fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  });
 }
 
 let widgetDragSrc = null;
@@ -2558,6 +2600,12 @@ function onWidgetDrop(event, targetIdx) {
   widgetDragSrc = null;
   renderWidgetsList();
   if (currentProviders.length) load();
+  // 立即持久化
+  fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  });
 }
 function onWidgetDragEnd(event) {
   event.currentTarget.classList.remove("dragging");
