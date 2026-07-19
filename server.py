@@ -1826,7 +1826,6 @@ function cardHtml(p, extraClass = "") {
 }
 
 function renderStatus(p) {
-  let bellShortcut = "";
   if (p.ok) {
     // 根据最危险环的剩余% 判定状态色
     const sections = normalize(p, p.data);
@@ -1841,9 +1840,7 @@ function renderStatus(p) {
     let label = "通畅";
     if (minRemaining < 20) { cls = "err"; label = "危险"; }
     else if (minRemaining < 50) { cls = "warn"; label = "紧张"; }
-    // 铃铛快捷: 点击为该 provider 创建一个规则
-    bellShortcut = ` <button class="hdr-btn icon-only" style="padding:2px;min-width:auto;min-height:auto;color:var(--muted)" title="为这个 provider 创建告警规则" onclick="quickCreateAlert('${escapeHtml(p.id)}','${escapeHtml(p.label || p.id)}')">${icon("bell", 13)}</button>`;
-    return `<span class="status-wrap"><span class="status ${cls}"><span class="led"></span>${label}</span>${bellShortcut}</span>`;
+    return `<span class="status ${cls}"><span class="led"></span>${label}</span>`;
   }
   if (p.error === "disabled") {
     return `<span class="status"><span class="led" style="background:var(--muted);box-shadow:none"></span>已禁用</span>`;
@@ -1854,34 +1851,6 @@ function renderStatus(p) {
 }
 
 // 卡片上的快捷创建规则: 直接为某 provider 加一条规则
-function quickCreateAlert(pid, plabel) {
-  refreshAlertsConfig().then(() => {
-    const ring = prompt(`为 ${plabel} 创建告警规则\n\n维度 (留空=所有维度, 或填 5 小时/周/月):`, "5 小时");
-    if (ring === null) return;
-    const threshold = prompt("剩余 % ≤ 几时触发?", "20");
-    if (!threshold) return;
-    const id = "alert-" + Date.now();
-    alertsConfig.push({
-      id, enabled: true,
-      label: `${plabel} ${ring || "所有维度"}`,
-      provider_id: pid,
-      ring: ring || "*",
-      threshold: Number(threshold) || 20,
-      channels: ["browser", "log"],
-      cooldown_min: 30,
-      one_shot: false,
-    });
-    fetch("/api/alerts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ alerts: alertsConfig }),
-    }).then(r => {
-      if (r.ok) { showToast("已创建告警规则"); refreshAlertsConfig(); }
-      else showToast("创建失败", "error");
-    });
-  });
-}
-
 // 算 provider 最危险环的剩余% (越高表示越安全)
 // 用于: 卡片排序 (升序, 危险在前) + 危险染色 + 全局告警条
 function minRemainingOf(p) {
