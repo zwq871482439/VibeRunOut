@@ -3149,51 +3149,6 @@ async function checkAndNotify(providers) {
   }
 }
 
-// 同步失败自动记录: 任何 provider 拉取失败 (p.ok === false 且非 disabled/no key),
-// 写一条 logs/alerts.jsonl 记录, 供通知中心查看
-let lastSyncFailure = {};  // provider_id -> { ts, error } 避免每分钟都写
-async function recordSyncFailures(providers) {
-  for (const p of providers) {
-    if (p.ok) {
-      // 上次失败这次恢复了, 记一条 "recovered"
-      if (lastSyncFailure[p.id]) {
-        try {
-          await fetch("/api/alerts/log", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              alert_id: "sync", provider_id: p.id, provider_label: p.label,
-              ring: "_recovered", remaining_pct: 100, channels: ["sync"],
-            }),
-          });
-        } catch (e) {}
-        delete lastSyncFailure[p.id];
-      }
-      continue;
-    }
-    if (p.error === "disabled" || p.error === "no key configured") continue;
-    // 冷却 5 分钟: 同一 provider 错误 5 分钟内只记一次
-    const now = Date.now();
-    if (lastSyncFailure[p.id] && now - lastSyncFailure[p.id].ts < 5 * 60 * 1000) continue;
-    lastSyncFailure[p.id] = { ts: now, error: p.error };
-    try {
-      await fetch("/api/alerts/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          alert_id: "sync",
-          provider_id: p.id,
-          provider_label: p.label || p.id,
-          ring: "_sync_failure",
-          remaining_pct: 0,
-          channels: ["sync"],
-        }),
-      });
-      if (bellPanelOpen) renderBellList();
-    } catch (e) {}
-  }
-}
-
 // ---------- 铃铛角标 + 面板 ----------
 function updateBellBadge() {
   const badge = document.getElementById("bell-badge");
