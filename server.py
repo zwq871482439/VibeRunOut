@@ -500,10 +500,9 @@ INDEX_HTML = r"""<!doctype html>
     /* 圆环用 accent 渐变, 玻璃感 */
     stroke: url(#ring-gradient-default) var(--accent, #6366f1);
   }
-  html.theme-glass .ring-fill.success { stroke: var(--success); }
-  html.theme-glass .ring-fill.warning { stroke: var(--warning); }
-  html.theme-glass .ring-fill.danger { stroke: var(--danger); }
-  html.theme-glass .button.primary {
+
+
+html.theme-glass .button.primary {
     background: linear-gradient(135deg, var(--accent), var(--accent-2, var(--accent)));
     color: var(--accent-fg, #fff);
     border: none;
@@ -513,13 +512,7 @@ INDEX_HTML = r"""<!doctype html>
   html.theme-glass .ring-text .pct { font-weight: 700; }
   html.theme-glass .header h1 { letter-spacing: -0.025em; }
   html.theme-glass .card h2 { letter-spacing: -0.01em; }
-  html.theme-glass .chip.active {
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: white;
-    border-color: transparent;
-  }
-
-  /* 2. MINIMAL 主题 (Linear 极简) */
+/* 2. MINIMAL 主题 (Linear 极简) */
   html.theme-minimal {
     --bg: #ffffff;
     --card: #ffffff;
@@ -585,13 +578,10 @@ INDEX_HTML = r"""<!doctype html>
     color: #fff;
     border: none;
   }
-  html.theme-minimal .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  html.theme-minimal .header h1 { letter-spacing: -0.025em; }
-  html.theme-minimal .ring-fill.success { stroke: var(--success); }
-  html.theme-minimal .ring-fill.warning { stroke: var(--warning); }
-  html.theme-minimal .ring-fill.danger { stroke: var(--danger); }
+html.theme-minimal .header h1 { letter-spacing: -0.025em; }
 
-  /* 3. DATA 主题 (Grafana 仪表盘) */
+
+/* 3. DATA 主题 (Grafana 仪表盘) */
   html.theme-data {
     --bg: #0b0c0e;
     --card: #181b1f;
@@ -626,16 +616,14 @@ INDEX_HTML = r"""<!doctype html>
     --shadow-lg: 0 4px 12px rgba(0,0,0,0.5);
   }
   html.theme-data .ring-fill { stroke: var(--accent); }
-  html.theme-data .ring-fill.success { stroke: var(--success); }
-  html.theme-data .ring-fill.warning { stroke: var(--warning); }
-  html.theme-data .ring-fill.danger { stroke: var(--danger); }
-  html.theme-data .button.primary {
+
+
+html.theme-data .button.primary {
     background: var(--accent);
     color: #0b0c0e;
     border: none;
   }
-  html.theme-data .chip.active { background: var(--accent); color: #0b0c0e; border-color: var(--accent); }
-  html.theme-data .card-header { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+html.theme-data .card-header { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
   html.theme-data .rings-row .ring-block { padding: 8px 0; }
 
   /* 4. BRAND 主题 (Vercel 营销渐变) */
@@ -699,21 +687,15 @@ INDEX_HTML = r"""<!doctype html>
     --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
   }
   html.theme-brand .ring-fill { stroke: var(--accent); }
-  html.theme-brand .ring-fill.success { stroke: var(--success); }
-  html.theme-brand .ring-fill.warning { stroke: var(--warning); }
-  html.theme-brand .ring-fill.danger { stroke: var(--danger); }
-  html.theme-brand .button.primary {
+
+
+html.theme-brand .button.primary {
     background: linear-gradient(135deg, var(--accent), var(--accent-2, var(--accent)));
     color: #fff;
     border: none;
     box-shadow: 0 4px 12px rgba(124,58,237,0.25);
   }
-  html.theme-brand .chip.active {
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: #fff;
-    border-color: transparent;
-  }
-  html.theme-brand .header h1 {
+html.theme-brand .header h1 {
     background: linear-gradient(90deg, var(--accent), var(--accent-2));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -1019,9 +1001,9 @@ INDEX_HTML = r"""<!doctype html>
   }
   .chip:hover { border-color: var(--border-strong); }
   .chip.active {
-    background: var(--focus);
+    background: var(--accent);
     color: white;
-    border-color: var(--focus);
+    border-color: var(--accent);
   }
   .chip .swatch {
     width: 8px; height: 8px; border-radius: 2px;
@@ -2430,25 +2412,39 @@ async function renderTrendChart(providers) {
     return aMin - bMin;
   });
   const isDark = document.documentElement.classList.contains("dark");
-  const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.05)";
-  const tickColor = isDark ? "#8b95a8" : "#64748b";
-  const dangerLine = isDark ? "rgba(248,113,113,0.5)" : "rgba(239,68,68,0.5)";
-  const warnLine = isDark ? "rgba(251,191,36,0.5)" : "rgba(245,158,11,0.5)";
-  const chart = Chart;
+  // 极淡网格线 + 文字
+  const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.04)";
+  const tickColor = isDark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.5)";
+  const dangerLine = isDark ? "rgba(248,113,113,0.45)" : "rgba(239,68,68,0.4)";
+  const warnLine = isDark ? "rgba(251,191,36,0.45)" : "rgba(245,158,11,0.4)";
+  // 玻璃 tooltip 背景
+  const tipBg = isDark ? "rgba(28,28,32,0.85)" : "rgba(255,255,255,0.85)";
+  const tipBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
+  const tipTitle = isDark ? "#f5f5f7" : "#0f172a";
+  const tipBody = isDark ? "rgba(255,255,255,0.7)" : "#475569";
   const datasets = sortedCombos.map((s, idx) => {
     const c = s.accent;
     return {
       label: `${s.label} · ${s.ring}`,
       data: seriesByCombo[`${s.pid}|${s.ring}`].data,
       borderColor: c,
-      backgroundColor: c + "1f",  // 12% 透明, 简单 hex alpha
+      // 真渐变填充 (iOS 液态玻璃感) - Chart.js v4 支持 function context
+      backgroundColor: function(context) {
+        const chart = context.chart;
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return c + "20";
+        const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        g.addColorStop(0, c + "55");   // 顶部 33% 透明
+        g.addColorStop(1, c + "00");   // 底部 0 透明
+        return g;
+      },
       fill: "origin",
-      tension: 0.4,
-      borderWidth: 2.5,
-      pointRadius: 3,
-      pointHoverRadius: 6,
+      tension: 0.45,  // 更平滑 (Apple style)
+      borderWidth: 1.8,  // 更细的线
+      pointRadius: 2.5,  // 更小的点
+      pointHoverRadius: 5,
       pointBackgroundColor: c,
-      pointBorderColor: isDark ? "#0f1115" : "#ffffff",
+      pointBorderColor: isDark ? "rgba(0,0,0,0.6)" : "#ffffff",
       pointBorderWidth: 1.5,
       spanGaps: true,
     };
@@ -2511,17 +2507,19 @@ async function renderTrendChart(providers) {
           position: "bottom",
         },
         tooltip: {
-          intersect: false, mode: "index", padding: 10,
+          intersect: false, mode: "index", padding: 12,
           titleFont: { size: 12, weight: "600" },
-          bodyFont: { size: 12 },
-          backgroundColor: isDark ? "rgba(20,20,30,0.95)" : "rgba(255,255,255,0.98)",
-          borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+          bodyFont: { size: 12, weight: "500" },
+          backgroundColor: tipBg,
+          borderColor: tipBorder,
           borderWidth: 1,
-          titleColor: isDark ? "#e8ecf3" : "#0f172a",
-          bodyColor: isDark ? "#a8acb3" : "#64748b",
-          cornerRadius: 8,
+          titleColor: tipTitle,
+          bodyColor: tipBody,
+          cornerRadius: 12,  // 苹果风格大圆角
           displayColors: true,
           boxPadding: 4,
+          boxWidth: 8, boxHeight: 8,
+          padding: 10,
         },
       },
       scales: {
