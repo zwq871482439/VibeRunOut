@@ -83,11 +83,19 @@ def _default_config():
             for t in BUILTIN_TEMPLATES
         ],
         "alerts": [],
-        "sort_mode": "manual",        # "manual" (按 config 顺序) | "danger" (按剩余% 升序)
         "ring_display": "ring",       # "ring" (圆环) | "bar" (进度条) | "text" (纯文字)
         "trend_mode": "chart",        # "chart" (显示趋势卡) | "hidden" (隐藏)
         "trend_default_ring": "*",    # 默认选中的维度: "*"=全部 | "5 小时" | "周" | "月"
         "trend_default_providers": "all",  # "all"=所有 | "first"=第一个
+        # Widget 列表 (dashboard 渲染顺序 = 数组顺序)
+        # 拖拽调整顺序, 取消勾选隐藏
+        "widgets": [
+            {"id": "summary",          "type": "summary",  "enabled": True},
+            {"id": "provider:zai",     "type": "provider", "provider_id": "zai",     "enabled": True},
+            {"id": "provider:minimax", "type": "provider", "provider_id": "minimax", "enabled": True},
+            {"id": "provider:kimi",    "type": "provider", "provider_id": "kimi",    "enabled": True},
+            {"id": "trend",            "type": "trend",    "enabled": True},
+        ],
     }
 
 
@@ -943,6 +951,25 @@ INDEX_HTML = r"""<!doctype html>
   }
 
   /* 趋势组件卡片 (独立一张大卡) */
+  .summary-card { padding: 16px 20px; }
+  .summary-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .summary-title {
+    font-size: 14px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .summary-stats { font-size: 12px; color: var(--muted); }
+  .summary-body {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .summary-stat { display: flex; flex-direction: column; gap: 2px; }
+  .summary-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .summary-stat-pct { font-size: 22px; font-weight: 700; font-family: var(--font-mono); letter-spacing: -0.02em; }
+  .summary-stat-detail { font-size: 13px; color: var(--text); }
+
   .trend-card {
     grid-column: 1 / -1;
   }
@@ -1339,6 +1366,21 @@ INDEX_HTML = r"""<!doctype html>
     margin-top: 8px;
   }
 
+  /* 组件 (Widgets) 列表 */
+  .widget-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--card);
+    margin-bottom: 6px;
+  }
+  .widget-row .widget-drag { color: var(--muted); cursor: grab; display: inline-flex; }
+  .widget-row .widget-drag:active { cursor: grabbing; }
+  .widget-row .widget-name { flex: 1; font-size: 13px; }
+  .widget-row .widget-type { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .widget-row.dragging { opacity: 0.4; }
+  .widget-row.drag-over { border-color: var(--focus); border-style: dashed; }
+
   /* 显示选项 (Settings → Providers 顶部) */
   .display-row {
     display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
@@ -1446,16 +1488,9 @@ INDEX_HTML = r"""<!doctype html>
         控制 dashboard 上每种元素的展示方式。改动立即生效 (不刷新)。
       </p>
 
-      <h3>卡片</h3>
-      <div class="display-row">
-        <div class="display-control">
-          <label>排序</label>
-          <select id="sort-mode" onchange="updateDisplayPref('sort_mode', this.value)">
-            <option value="manual">按我的设置 (拖拽顺序)</option>
-            <option value="danger">按危险度 (最缺的在前)</option>
-          </select>
-        </div>
-      </div>
+      <h3>组件 (Widgets)</h3>
+      <p style="color:var(--muted);font-size:11px;margin:0 0 8px">dashboard 上显示哪些卡 + 顺序。拖拽手柄调整顺序, 取消勾选隐藏。</p>
+      <div id="widgets-list"></div>
 
       <h3>限额指示</h3>
       <p style="color:var(--muted);font-size:11px;margin:0 0 8px">每张卡片里 5 小时 / 周 / 月 的显示样式</p>
@@ -1967,25 +2002,11 @@ async function load() {
     const res = await fetch("/api/quota");
     const data = await res.json();
     const main = document.getElementById("main");
-    // 按用户配置的顺序渲染 (如果 config.sort_mode === "danger" 则按危险度升序)
-    const sortMode = (config.sort_mode || "manual");
-    const sorted = [...data.providers].sort((a, b) => {
-      if (sortMode === "danger") {
-        // 按危险度: 剩余最少的在前
-        const ra = minRemainingOf(a), rb = minRemainingOf(b);
-        if (a.ok !== b.ok) return a.ok ? -1 : 1;
-        return ra - rb;
-      }
-      // "manual": 按 config.providers 数组顺序
-      const ia = config.providers.findIndex(p => p.id === a.id);
-      const ib = config.providers.findIndex(p => p.id === b.id);
-      const ai = ia < 0 ? 999 : ia;
-      const bi = ib < 0 ? 999 : ib;
-      return ai - bi;
-    });
-    const hasAny = sorted.some(p => p.ok);
-    if (!hasAny) {
-      // 空配置 / 全 disabled / 全无 key: 显示引导
+    currentProviders = data.providers;
+
+    // 按 widgets 数组顺序渲染 (用户在 Settings 拖拽)
+    const hasAny = data.providers.some(p => p.ok && (config.providers.find(x => x.id === p.id)?.enabled));
+    if (!hasAny || !config.widgets.length) {
       main.innerHTML = `
         <div class="card" style="grid-column:1/-1;text-align:center;padding:56px 24px">
           <div style="margin-bottom:20px;opacity:0.7">${icon("bell", 56)}</div>
@@ -1994,18 +2015,33 @@ async function load() {
           <button class="hdr-btn primary" style="font-size:14px;padding:10px 22px" onclick="openSettings()">${icon("settings", 14)} 搞起来</button>
         </div>`;
     } else {
-      const cardsHtml = sorted.map(p => {
-        const dangerCls = (p.ok && minRemainingOf(p) < 20) ? " danger" : "";
-        return cardHtml(p, dangerCls);
-      }).join("");
-      // 趋势卡片: 独立一张大卡, 横跨整行
-      const trendHtml = renderTrendCard(sorted);
-      main.innerHTML = cardsHtml + trendHtml;
-      // 趋势卡片初始化 (渲染选项 + 加载历史)
-      initTrendCard(sorted);
+      const html = [];
+      const trendProviders = [];
+      for (const w of config.widgets) {
+        if (!w.enabled) continue;
+        if (w.type === "summary") {
+          html.push(renderSummaryWidget(data.providers));
+        } else if (w.type === "provider") {
+          const p = data.providers.find(x => x.id === w.provider_id);
+          if (!p) continue;
+          const dangerCls = (p.ok && minRemainingOf(p) < 20) ? " danger" : "";
+          html.push(cardHtml(p, dangerCls));
+          trendProviders.push(p);
+        } else if (w.type === "trend") {
+          // 趋势卡用所有 enabled provider
+          trendProviders.push(...data.providers);
+        }
+      }
+      main.innerHTML = html.join("");
+      // 趋势卡单独追加 (因为它要横跨整行 + 独立 init)
+      const trendEl = renderTrendCard(data.providers);
+      if (trendEl) {
+        main.insertAdjacentHTML("beforeend", trendEl);
+      }
+      initTrendCard(data.providers);
     }
     // 全局告警条 (顶部): 最危险的那条
-    renderGlobalAlert(sorted);
+    renderGlobalAlert(data.providers);
     document.getElementById("updated").textContent =
       "updated " + new Date().toLocaleTimeString("zh-CN", {hour12: false});
     // 每次刷新都重新拉 alerts 规则 (别处可能改了)
@@ -2145,6 +2181,55 @@ async function fetchHistory() {
 let trendChartInstance = null;
 let trendSelected = { providers: new Set(), rings: new Set() };
 const RING_COLOR_PALETTE = ["#2B7FFF", "#7C3AED", "#1F1F1F", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899"];
+
+// 摘要 widget: 顶部整体状态
+function renderSummaryWidget(providers) {
+  const ok = providers.filter(p => p.ok);
+  const enabledOk = ok.filter(p => config.providers.find(x => x.id === p.id)?.enabled);
+  if (!enabledOk.length) return "";
+  // 算各 provider 5h 剩余
+  const fiveHourRemainings = enabledOk.map(p => {
+    const s = normalize(p, p.data);
+    if (!s.length || s[0].kind !== "card") return null;
+    const ring5h = (s[0].rings || []).find(r => r.title === "5 小时");
+    return ring5h ? (100 - (ring5h.percent || 0)) : null;
+  }).filter(v => v != null);
+  const avg5h = fiveHourRemainings.length
+    ? Math.round(fiveHourRemainings.reduce((a, b) => a + b, 0) / fiveHourRemainings.length)
+    : null;
+  // 最危险的 ring
+  let topDanger = null;
+  for (const p of enabledOk) {
+    const s = normalize(p, p.data);
+    if (!s.length || s[0].kind !== "card") continue;
+    for (const r of (s[0].rings || [])) {
+      const rem = 100 - (r.percent || 0);
+      if (!topDanger || rem < topDanger.remaining) {
+        topDanger = { provider: p, ring: r, remaining: rem };
+      }
+    }
+  }
+  // 统计
+  const dangers = enabledOk.filter(p => minRemainingOf(p) < 20).length;
+  const warns = enabledOk.filter(p => { const r = minRemainingOf(p); return r >= 20 && r < 50; }).length;
+  const healthy = enabledOk.length - dangers - warns;
+  let statusLine;
+  if (dangers > 0) statusLine = `<span style="color:var(--danger)">${dangers} 家见底</span> · <span style="color:var(--warning)">${warns} 家略紧</span> · ${healthy} 家通畅`;
+  else if (warns > 0) statusLine = `<span style="color:var(--warning)">${warns} 家略紧</span> · ${healthy} 家通畅`;
+  else statusLine = `<span style="color:var(--success)">全部 ${healthy} 家通畅</span>`;
+  return `
+    <div class="card summary-card" style="grid-column:1/-1">
+      <div class="summary-header">
+        <span class="summary-title">${icon("chart", 16)} vibe 摘要</span>
+        <span class="summary-stats">${statusLine}</span>
+      </div>
+      <div class="summary-body">
+        ${avg5h != null ? `<div class="summary-stat"><span class="summary-stat-label">5h 平均剩余</span><span class="summary-stat-pct" style="color:${avg5h < 20 ? 'var(--danger)' : avg5h < 50 ? 'var(--warning)' : 'var(--success)'}">${avg5h}%</span></div>` : ""}
+        ${topDanger ? `<div class="summary-stat"><span class="summary-stat-label">最危险</span><span class="summary-stat-detail">${escapeHtml(topDanger.provider.label)} · ${escapeHtml(topDanger.ring.title)} 剩 ${topDanger.remaining}%${topDanger.ring.resetText ? ' (' + escapeHtml(topDanger.ring.resetText) + ')' : ''}</span></div>` : ""}
+      </div>
+    </div>
+  `;
+}
 
 function renderTrendCard(providers) {
   if (config.trend_mode === "hidden") return "";
@@ -2361,6 +2446,7 @@ async function openSettings() {
   renderAlertList();
   renderThemeCenter();
   syncDisplaySelects();
+  renderWidgetsList();
   // 填静态按钮的图标
   const addBtn = document.getElementById("alert-add-btn");
   if (addBtn) addBtn.innerHTML = icon("plus", 14) + " 新建规则";
@@ -2405,11 +2491,72 @@ function updateDisplayPref(key, value) {
 
 function syncDisplaySelects() {
   const setSel = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-  setSel("sort-mode", config.sort_mode || "manual");
   setSel("ring-display", config.ring_display || "ring");
   setSel("trend-mode", config.trend_mode || "chart");
   setSel("trend-default-ring", config.trend_default_ring || "*");
   setSel("trend-default-providers", config.trend_default_providers || "all");
+}
+
+// ---------- 组件 (Widgets) 列表 ----------
+function widgetLabel(w) {
+  if (w.type === "summary") return "vibe 摘要";
+  if (w.type === "trend") return "趋势";
+  if (w.type === "provider") {
+    const p = config.providers.find(x => x.id === w.provider_id);
+    return p ? p.label || p.id : w.provider_id;
+  }
+  return w.id;
+}
+
+function renderWidgetsList() {
+  const list = document.getElementById("widgets-list");
+  if (!list) return;
+  list.innerHTML = config.widgets.map((w, i) => `
+    <div class="widget-row" data-idx="${i}"
+         draggable="true"
+         ondragstart="onWidgetDragStart(event, ${i})"
+         ondragover="onWidgetDragOver(event, ${i})"
+         ondrop="onWidgetDrop(event, ${i})"
+         ondragend="onWidgetDragEnd(event)">
+      <input type="checkbox" ${w.enabled ? "checked" : ""} onchange="toggleWidget(${i})" />
+      <span class="widget-drag">${icon("drag", 14)}</span>
+      <span class="widget-name">${escapeHtml(widgetLabel(w))}</span>
+      <span class="widget-type">${escapeHtml(w.type)}</span>
+    </div>
+  `).join("");
+}
+
+function toggleWidget(i) {
+  config.widgets[i].enabled = !config.widgets[i].enabled;
+  renderWidgetsList();
+  if (currentProviders.length) load();  // 重新渲染
+}
+
+let widgetDragSrc = null;
+function onWidgetDragStart(event, i) {
+  widgetDragSrc = i;
+  event.dataTransfer.effectAllowed = "move";
+  event.currentTarget.classList.add("dragging");
+}
+function onWidgetDragOver(event, i) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  event.currentTarget.classList.add("drag-over");
+}
+function onWidgetDrop(event, targetIdx) {
+  event.preventDefault();
+  event.currentTarget.classList.remove("drag-over");
+  if (widgetDragSrc === null || widgetDragSrc === targetIdx) return;
+  const moved = config.widgets.splice(widgetDragSrc, 1)[0];
+  config.widgets.splice(targetIdx, 0, moved);
+  widgetDragSrc = null;
+  renderWidgetsList();
+  if (currentProviders.length) load();
+}
+function onWidgetDragEnd(event) {
+  event.currentTarget.classList.remove("dragging");
+  document.querySelectorAll(".widget-row.drag-over").forEach(c => c.classList.remove("drag-over"));
+  widgetDragSrc = null;
 }
 
 // ---------- 通知规则 CRUD ----------
@@ -2551,12 +2698,23 @@ async function loadConfigAndTemplates() {
     fetch("/api/templates").then(r => r.json()),
   ]);
   config = cfg;
-  // 兼容老 config (可能缺新字段)
-  if (!config.sort_mode) config.sort_mode = "manual";
+  // 兼容老 config
   if (!config.ring_display) config.ring_display = "ring";
   if (!config.trend_mode) config.trend_mode = "chart";
   if (!config.trend_default_ring) config.trend_default_ring = "*";
   if (!config.trend_default_providers) config.trend_default_providers = "all";
+  // 老 config 可能没 widgets, 按 enabled providers 生成默认数组
+  if (!config.widgets || !Array.isArray(config.widgets) || !config.widgets.length) {
+    config.widgets = [
+      { id: "summary", type: "summary", enabled: true },
+    ];
+    for (const p of (config.providers || [])) {
+      if (p.enabled) {
+        config.widgets.push({ id: `provider:${p.id}`, type: "provider", provider_id: p.id, enabled: true });
+      }
+    }
+    config.widgets.push({ id: "trend", type: "trend", enabled: true });
+  }
   templates = tpl;
 }
 
