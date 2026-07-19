@@ -3023,7 +3023,10 @@ function showToast(msg, type) {
   toastTimer = setTimeout(() => t.classList.remove("show"), 2500);
 }
 
-load();
+// 初始化: 拉 config + templates (必须在 load() 前, 否则 config.providers 是空, 误判空状态)
+loadConfigAndTemplates().then(() => {
+  load();
+});
 setInterval(load, 60_000);
 
 // ---------- 通知中心 ----------
