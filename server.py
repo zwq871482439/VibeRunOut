@@ -2216,7 +2216,7 @@ function renderSummaryWidget(providers) {
   let statusLine;
   if (dangers > 0) statusLine = `<span style="color:var(--danger)">${dangers} 家见底</span> · <span style="color:var(--warning)">${warns} 家略紧</span> · ${healthy} 家通畅`;
   else if (warns > 0) statusLine = `<span style="color:var(--warning)">${warns} 家略紧</span> · ${healthy} 家通畅`;
-  else statusLine = `<span style="color:var(--success)">全部 ${healthy} 家通畅</span>`;
+  else statusLine = `<span style="color:var(--success)">同步正常</span>`;
   return `
     <div class="card summary-card" style="grid-column:1/-1">
       <div class="summary-header">
