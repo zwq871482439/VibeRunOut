@@ -2468,24 +2468,30 @@ function switchTab(name) {
 // ---------- 显示选项 (sort_mode + ring_display) ----------
 function updateDisplayPref(key, value) {
   config[key] = value;
+  // 改了 trend 默认维度/provider, 重置已选 (让新默认值立即生效)
+  if (key === "trend_default_ring" || key === "trend_default_providers") {
+    trendSelected = { providers: new Set(), rings: new Set() };
+  }
   // 即时生效: 重渲染卡片
   if (currentProviders.length) {
-    const cardsHtml = currentProviders.map(p => {
-      const dangerCls = (p.ok && minRemainingOf(p) < 20) ? " danger" : "";
-      return cardHtml(p, dangerCls);
-    }).join("");
-    document.getElementById("main").innerHTML = cardsHtml + renderTrendCard(currentProviders);
-    // 重绑趋势 details 的展开事件
-    document.querySelectorAll(".more-folder").forEach(d => {
-      d.addEventListener("toggle", () => {
-        if (d.open && d.dataset.chartPid) {
-          const pid = d.dataset.chartPid;
-          const titles = JSON.parse(d.dataset.chartTitles || "[]");
-          const accent = d.dataset.chartAccent || "#2B7FFF";
-          loadChart(pid, titles, accent);
-        }
-      });
-    });
+    const html = [];
+    const trendProviders = [];
+    for (const w of config.widgets) {
+      if (!w.enabled) continue;
+      if (w.type === "summary") {
+        html.push(renderSummaryWidget(currentProviders));
+      } else if (w.type === "provider") {
+        const p = currentProviders.find(x => x.id === w.provider_id);
+        if (!p) continue;
+        const dangerCls = (p.ok && minRemainingOf(p) < 20) ? " danger" : "";
+        html.push(cardHtml(p, dangerCls));
+        trendProviders.push(p);
+      }
+    }
+    document.getElementById("main").innerHTML = html.join("");
+    const trendEl = renderTrendCard(currentProviders);
+    if (trendEl) document.getElementById("main").insertAdjacentHTML("beforeend", trendEl);
+    initTrendCard(currentProviders);
   }
 }
 
@@ -2715,6 +2721,8 @@ async function loadConfigAndTemplates() {
     }
     config.widgets.push({ id: "trend", type: "trend", enabled: true });
   }
+  // 同步重置 trend 已选 (让 config.trend_default_* 立即生效)
+  trendSelected = { providers: new Set(), rings: new Set() };
   templates = tpl;
 }
 
