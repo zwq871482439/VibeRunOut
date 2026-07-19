@@ -1472,7 +1472,7 @@ INDEX_HTML = r"""<!doctype html>
       </div>
 
       <h3>趋势卡片</h3>
-      <p style="color:var(--muted);font-size:11px;margin:0 0 8px">底部"📈 趋势"组件卡片的设置</p>
+      <p style="color:var(--muted);font-size:11px;margin:0 0 8px">底部"趋势"组件卡片的设置</p>
       <div class="display-row">
         <div class="display-control">
           <label>显示模式</label>
@@ -1531,7 +1531,7 @@ INDEX_HTML = r"""<!doctype html>
 </div>
 
 <div class="bell-panel" id="bell-panel">
-  <h3>通知记录</h3>
+  <h3>vibe 事件流</h3>
   <div id="bell-grant" class="bp-grant" style="display:none">
     <span id="bell-grant-text"></span> <button class="hdr-btn primary" onclick="enableNotifs()">开启</button>
   </div>
@@ -1880,7 +1880,6 @@ function cardHtml(p, extraClass = "") {
 }
 
 function renderStatus(p) {
-  // 状态: 绿点 = 通畅, 黄点 = 紧张, 红点 = 危险, 灰点 = 断连 (p.ok === false 且非 disabled)
   if (p.ok) {
     const sections = normalize(p, p.data);
     let minRemaining = 100;
@@ -1890,17 +1889,19 @@ function renderStatus(p) {
         if (rem < minRemaining) minRemaining = rem;
       }
     }
+    // 状态短句: 用户一眼看到, 不靠 hover
     let cls = ""; // 默认绿
-    if (minRemaining < 20) cls = "err";
-    else if (minRemaining < 50) cls = "warn";
-    return `<span class="status ${cls}" title="剩 ${minRemaining}%"><span class="led"></span></span>`;
+    let text = "通畅";
+    if (minRemaining < 20) { cls = "err"; text = "紧张"; }
+    else if (minRemaining < 50) { cls = "warn"; text = "略紧"; }
+    return `<span class="status ${cls}"><span class="led"></span>${text}</span>`;
   }
   if (p.error === "disabled") {
-    return `<span class="status" title="已禁用"><span class="led" style="background:var(--muted);box-shadow:none"></span></span>`;
+    return `<span class="status"><span class="led" style="background:var(--muted);box-shadow:none"></span>已禁用</span>`;
   }
-  // 错误 (断连): 灰点 + 错误信息在 title
-  const code = escapeHtml(String(p.error || "error"));
-  return `<span class="status err" title="${code}"><span class="led"></span></span>`;
+  // 断连: 红点 + 错误码
+  const code = escapeHtml(String(p.error || "断连"));
+  return `<span class="status err" title="${code}"><span class="led"></span>断连</span>`;
 }
 
 // 卡片上的快捷创建规则: 直接为某 provider 加一条规则
@@ -1946,14 +1947,16 @@ function renderGlobalAlert(providers) {
     return;
   }
   const cls = top.remaining < 20 ? "danger" : "warn";
-  const label = top.remaining < 20 ? "危险" : "紧张";
+  let prefix;
+  if (top.remaining < 20) prefix = "见底警告";
+  else if (top.remaining < 35) prefix = "紧张";
+  else prefix = "略紧";
   el.style.display = "block";
   el.innerHTML = `
     <div class="global-alert-inner ${cls}">
       ${icon("bell", 16)}
-      <span><b>${escapeHtml(top.provider.label)}</b> · ${escapeHtml(top.ring.title)} ${label}</span>
+      <span><b>${prefix}</b> ${escapeHtml(top.provider.label)} · ${escapeHtml(top.ring.title)} 剩 ${top.remaining}%</span>
       ${top.ring.resetText ? `<span class="muted">${escapeHtml(top.ring.resetText)}</span>` : ""}
-      <span class="ga-pct">${top.remaining}%</span>
     </div>
   `;
 }
@@ -1987,11 +1990,11 @@ async function load() {
     if (!hasAny) {
       // 空配置 / 全 disabled / 全无 key: 显示引导
       main.innerHTML = `
-        <div class="card" style="grid-column:1/-1;text-align:center;padding:48px 24px">
-          <div style="margin-bottom:16px">${icon("bell", 48)}</div>
-          <h2 style="margin:0 0 8px">还没有配置任何 provider</h2>
-          <p style="color:var(--muted);margin:0 0 24px">点右上角设置图标, 启用内置模板并填入 API key, 然后保存。</p>
-          <button class="hdr-btn primary" style="font-size:14px;padding:10px 20px" onclick="openSettings()">${icon("settings", 14)} 打开 Settings</button>
+        <div class="card" style="grid-column:1/-1;text-align:center;padding:56px 24px">
+          <div style="margin-bottom:20px;opacity:0.7">${icon("bell", 56)}</div>
+          <h2 style="margin:0 0 8px;font-size:22px">还没 vibe 起来</h2>
+          <p style="color:var(--muted);margin:0 0 28px;font-size:13px">点下面按钮挑几个 provider, 填上 key, 几秒钟就能看到 vibe 余量</p>
+          <button class="hdr-btn primary" style="font-size:14px;padding:10px 22px" onclick="openSettings()">${icon("settings", 14)} 搞起来</button>
         </div>`;
     } else {
       const cardsHtml = sorted.map(p => {
@@ -2992,7 +2995,7 @@ async function renderBellList() {
     const data = await res.json();
     const log = data.log || [];
     if (!log.length) {
-      list.innerHTML = '<div class="bp-empty">还没有告警记录。<br>去 Settings → 🔔 通知中心 配置规则。</div>';
+      list.innerHTML = `<div class="bp-empty">${icon("bell", 28)}<div>还没有告警记录</div><div class="muted" style="font-size:11px;margin-top:4px">去 Settings → 通知中心 配置规则</div></div>`;
       return;
     }
     list.innerHTML = log.map(item => `
