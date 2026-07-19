@@ -83,6 +83,8 @@ def _default_config():
             for t in BUILTIN_TEMPLATES
         ],
         "alerts": [],
+        "sort_mode": "manual",   # "manual" (按 config 顺序) | "danger" (按剩余% 升序)
+        "ring_display": "ring",   # "ring" (圆环) | "bar" (进度条) | "text" (纯文字)
     }
 
 
@@ -862,6 +864,38 @@ INDEX_HTML = r"""<!doctype html>
   .ring-meta .reset { font-size: 12px; color: var(--muted); }
   .rings-row { display: flex; gap: 12px; align-items: stretch; margin-bottom: 14px; }
   .rings-row .ring-block { flex: 1; }
+  /* bar 模式: 整行变垂直堆叠, 每个 ring 占一行 */
+  .rings-row.rings-display-bar { flex-direction: column; gap: 10px; }
+  /* text 模式: 更紧凑, 一行多个 */
+  .rings-row.rings-display-text { gap: 8px; }
+  .ring-block-text {
+    padding: 12px 14px;
+    background: var(--card-alt);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .ring-block-text .text-pct {
+    font-size: 24px; font-weight: 700; line-height: 1;
+    font-family: var(--font-mono);
+  }
+  .ring-block-text .text-title {
+    font-size: 13px; font-weight: 500; margin-top: 4px;
+  }
+  .ring-block-text .text-reset {
+    font-size: 11px; color: var(--muted); margin-top: 4px;
+    font-family: var(--font-mono);
+  }
+  .ring-block-bar .bar-meta { width: 100%; }
+  .ring-block-bar .bar-title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  .ring-block-bar .bar-pct {
+    font-size: 18px; font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .ring-block-bar .bar-label { font-size: 13px; font-weight: 500; }
+  .ring-block-bar .bar-reset {
+    font-size: 11px; color: var(--muted); margin-top: 4px;
+    font-family: var(--font-mono);
+  }
 
   .extras {
     border-top: 1px dashed var(--border);
@@ -1298,6 +1332,23 @@ INDEX_HTML = r"""<!doctype html>
   .alert-add-btn {
     margin-top: 8px;
   }
+
+  /* 显示选项 (Settings → Providers 顶部) */
+  .display-row {
+    display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .display-control {
+    display: flex; flex-direction: column; gap: 4px; min-width: 180px;
+  }
+  .display-control label {
+    font-size: 11px; color: var(--muted); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .display-control select {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 6px 10px; background: var(--card); color: var(--text);
+    font-size: 13px; font-family: inherit; cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -1348,6 +1399,25 @@ INDEX_HTML = r"""<!doctype html>
     </div>
 
     <div class="tab-panel active" id="tab-providers">
+      <h3>显示选项</h3>
+      <div class="display-row">
+        <div class="display-control">
+          <label>卡片排序</label>
+          <select id="sort-mode" onchange="updateDisplayPref('sort_mode', this.value)">
+            <option value="manual">按我的设置 (拖拽顺序)</option>
+            <option value="danger">按危险度 (最缺的在前)</option>
+          </select>
+        </div>
+        <div class="display-control">
+          <label>限额显示</label>
+          <select id="ring-display" onchange="updateDisplayPref('ring_display', this.value)">
+            <option value="ring">圆环 (Ring)</option>
+            <option value="bar">进度条 (Bar)</option>
+            <option value="text">纯文字 (Text)</option>
+          </select>
+        </div>
+      </div>
+
       <h3>内置模板</h3>
       <div class="template-grid" id="template-grid"></div>
 
@@ -1647,12 +1717,42 @@ function ringSvg(pct, color) {
   `;
 }
 
-function ringBlock(r, accent) {
+function ringBlock(r, accent, display) {
   // r.percent 是"已用%"; 这里翻转为"剩余%", 体现 "还能 vibe 多久"
   const used = Math.max(0, Math.min(100, r.percent));
   const remaining = 100 - used;
-  // 剩余越少越警告 (统一状态色)
   const color = remaining < 20 ? "var(--danger)" : remaining < 50 ? "var(--warning)" : accent;
+  const displayType = display || "ring";
+
+  // 三种显示模式: ring (圆环) / bar (进度条) / text (纯文字)
+  if (displayType === "text") {
+    return `
+      <div class="ring-block ring-block-text">
+        <div class="text-meta">
+          <div class="text-pct" style="color:${color}">剩 ${remaining}%</div>
+          <div class="text-title">${escapeHtml(r.title)}</div>
+          ${r.resetText ? `<div class="text-reset">${icon("clock", 11)} ${escapeHtml(r.resetText)}</div>` : ""}
+        </div>
+      </div>
+    `;
+  }
+  if (displayType === "bar") {
+    return `
+      <div class="ring-block ring-block-bar">
+        <div class="bar-meta">
+          <div class="bar-title">
+            <span class="bar-pct" style="color:${color}">${remaining}%</span>
+            <span class="bar-label">${escapeHtml(r.title)}</span>
+          </div>
+          <div class="bar" style="height:8px;background:var(--bar);border-radius:999px;overflow:hidden">
+            <div style="height:100%;width:${remaining}%;background:${color};border-radius:999px"></div>
+          </div>
+          ${r.resetText ? `<div class="bar-reset">${icon("clock", 11)} ${escapeHtml(r.resetText)}</div>` : ""}
+        </div>
+      </div>
+    `;
+  }
+  // 默认 ring
   return `
     <div class="ring-block">
       <div class="ring-wrapper" style="width:110px;height:110px;flex-shrink:0">
@@ -1700,7 +1800,7 @@ function cardHtml(p, extraClass = "") {
       });
       const extras = card.extras || [];
       const ringHtml = rings.length
-        ? `<div class="rings-row">${rings.map(r => ringBlock(r, accent)).join("")}</div>` : "";
+        ? `<div class="rings-row rings-display-${config.ring_display || 'ring'}">${rings.map(r => ringBlock(r, accent, config.ring_display)).join("")}</div>` : "";
       const extrasHtml = extras.length
         ? `<details class="more-folder">
             <summary>更多</summary>
@@ -1845,15 +1945,21 @@ async function load() {
     const res = await fetch("/api/quota");
     const data = await res.json();
     const main = document.getElementById("main");
-    // 按"危险度"升序排序 (剩余% 最少的在前), 但 disabled/error 的排最后
+    // 按用户配置的顺序渲染 (如果 config.sort_mode === "danger" 则按危险度升序)
+    const sortMode = (config.sort_mode || "manual");
     const sorted = [...data.providers].sort((a, b) => {
-      const ra = minRemainingOf(a), rb = minRemainingOf(b);
-      // disabled/no key 都视为 100 (排最后), 但 error 也要排最后
-      const aBack = (!a.ok && (a.error === "disabled" || a.error === "no key configured")) || (a.ok);
-      const bBack = (!b.ok && (b.error === "disabled" || b.error === "no key configured")) || (b.ok);
-      // 简化: ok 的按剩余升序, 不 ok 的统一排后
-      if (a.ok !== b.ok) return a.ok ? -1 : 1;
-      return ra - rb;
+      if (sortMode === "danger") {
+        // 按危险度: 剩余最少的在前
+        const ra = minRemainingOf(a), rb = minRemainingOf(b);
+        if (a.ok !== b.ok) return a.ok ? -1 : 1;
+        return ra - rb;
+      }
+      // "manual": 按 config.providers 数组顺序
+      const ia = config.providers.findIndex(p => p.id === a.id);
+      const ib = config.providers.findIndex(p => p.id === b.id);
+      const ai = ia < 0 ? 999 : ia;
+      const bi = ib < 0 ? 999 : ib;
+      return ai - bi;
     });
     const hasAny = sorted.some(p => p.ok);
     if (!hasAny) {
@@ -1923,16 +2029,20 @@ else if (savedDarkPref === "light") currentDark = false;
 else currentDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 function applyTheme() {
-  const html = document.documentElement;
-  html.className = "";
-  html.classList.add(`theme-${currentTheme}`);
-  html.classList.add(`accent-${currentAccent}`);
-  if (currentDark) html.classList.add("dark");
-  localStorage.setItem("vibeout-theme-name", currentTheme);
-  localStorage.setItem("vibeout-accent", currentAccent);
-  localStorage.setItem("vibeout-theme-dark", currentDark ? "dark" : "light");
-  refreshHdrIcons(currentDark);
-  refreshCharts();
+  try {
+    const html = document.documentElement;
+    html.className = "";
+    html.classList.add(`theme-${currentTheme}`);
+    html.classList.add(`accent-${currentAccent}`);
+    if (currentDark) html.classList.add("dark");
+    localStorage.setItem("vibeout-theme-name", currentTheme);
+    localStorage.setItem("vibeout-accent", currentAccent);
+    localStorage.setItem("vibeout-theme-dark", currentDark ? "dark" : "light");
+    refreshHdrIcons();
+    refreshCharts();
+  } catch (e) {
+    console.error("applyTheme failed:", e);
+  }
 }
 
 function renderThemeCenter() {
@@ -2213,6 +2323,7 @@ async function openSettings() {
   renderProviderList();
   renderAlertList();
   renderThemeCenter();
+  syncDisplaySelects();
   // 填静态按钮的图标
   const addBtn = document.getElementById("alert-add-btn");
   if (addBtn) addBtn.innerHTML = icon("plus", 14) + " 新建规则";
@@ -2227,6 +2338,37 @@ function switchTab(name) {
   document.getElementById("tab-" + name + "-btn").classList.add("active");
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
   document.getElementById("tab-" + name).classList.add("active");
+}
+
+// ---------- 显示选项 (sort_mode + ring_display) ----------
+function updateDisplayPref(key, value) {
+  config[key] = value;
+  // 即时生效: 重渲染卡片
+  if (currentProviders.length) {
+    const cardsHtml = currentProviders.map(p => {
+      const dangerCls = (p.ok && minRemainingOf(p) < 20) ? " danger" : "";
+      return cardHtml(p, dangerCls);
+    }).join("");
+    document.getElementById("main").innerHTML = cardsHtml + renderTrendCard(currentProviders);
+    // 重绑趋势 details 的展开事件
+    document.querySelectorAll(".more-folder").forEach(d => {
+      d.addEventListener("toggle", () => {
+        if (d.open && d.dataset.chartPid) {
+          const pid = d.dataset.chartPid;
+          const titles = JSON.parse(d.dataset.chartTitles || "[]");
+          const accent = d.dataset.chartAccent || "#2B7FFF";
+          loadChart(pid, titles, accent);
+        }
+      });
+    });
+  }
+}
+
+function syncDisplaySelects() {
+  const sortSel = document.getElementById("sort-mode");
+  if (sortSel) sortSel.value = config.sort_mode || "manual";
+  const ringSel = document.getElementById("ring-display");
+  if (ringSel) ringSel.value = config.ring_display || "ring";
 }
 
 // ---------- 通知规则 CRUD ----------
@@ -2368,6 +2510,9 @@ async function loadConfigAndTemplates() {
     fetch("/api/templates").then(r => r.json()),
   ]);
   config = cfg;
+  // 兼容老 config (可能缺新字段)
+  if (!config.sort_mode) config.sort_mode = "manual";
+  if (!config.ring_display) config.ring_display = "ring";
   templates = tpl;
 }
 
