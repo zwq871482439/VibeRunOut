@@ -1832,7 +1832,9 @@ function ringBlock(r, accent, display) {
 }
 
 function cardHtml(p, extraClass = "") {
-  const accent = p.color || PROVIDER_ACCENT[p.id] || "#2B7FFF";
+  // 颜色: widget 设置优先, 再 provider 全局, 再 fallback
+  const w = config.widgets.find(x => x.type === "provider" && x.provider_id === p.id);
+  const accent = (w && w.color) || p.color || PROVIDER_ACCENT[p.id] || "#2B7FFF";
   let body;
   if (!p.ok) {
     if (p.error === "disabled") {
@@ -2520,15 +2522,17 @@ function renderWidgetsList() {
 }
 
 function widgetSettingsHTML(w, i) {
-  // 每个 provider widget 自带 ring_display 下拉
+  // 每个 provider widget 自带 ring_display 下拉 + 颜色
   if (w.type === "provider") {
     const cur = w.ring_display || config.ring_display || "ring";
+    const color = w.color || config.providers.find(p => p.id === w.provider_id)?.color || "#2B7FFF";
     return `<div class="widget-settings">
       <label>显示 <select onchange="updateWidgetField(${i}, 'ring_display', this.value)">
         <option value="ring" ${cur === "ring" ? "selected" : ""}>圆环</option>
         <option value="bar" ${cur === "bar" ? "selected" : ""}>进度条</option>
         <option value="text" ${cur === "text" ? "selected" : ""}>文字</option>
       </select></label>
+      <label>颜色 <input type="color" value="${escapeHtml(color)}" oninput="updateWidgetField(${i}, 'color', this.value)" /></label>
     </div>`;
   }
   // 趋势 widget 自带 mode / ring / provider 设置
@@ -2815,8 +2819,6 @@ function renderProviderList() {
            ondragend="onDragEnd(event)">
         <div class="pc-header">
           <span class="pc-drag" title="拖拽排序">${icon("drag", 16)}</span>
-          <input type="color" class="pc-color" value="${escapeHtml(p.color || "#2B7FFF")}"
-                 oninput="updateField(${i}, 'color', this.value)" title="卡片颜色" />
           <input type="text" class="pc-label" data-field="label" placeholder="Provider 名称"
                  oninput="updateField(${i}, 'label', this.value)" />
           <span class="pc-pid"></span>
