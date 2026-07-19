@@ -2187,14 +2187,22 @@ function renderSummaryWidget(providers) {
       }
     }
   }
-  // 统计
-  const dangers = enabledOk.filter(p => minRemainingOf(p) < 20).length;
-  const warns = enabledOk.filter(p => { const r = minRemainingOf(p); return r >= 20 && r < 50; }).length;
-  const healthy = enabledOk.length - dangers - warns;
+  // 同步状态 (只反映 API 拉取, 不反映额度)
+  const syncFailed = providers.filter(p => p.config?.enabled && !p.ok && p.error !== "no key configured").length;
   let statusLine;
-  if (dangers > 0) statusLine = `<span style="color:var(--danger)">${dangers} 家见底</span> · <span style="color:var(--warning)">${warns} 家略紧</span> · ${healthy} 家通畅`;
-  else if (warns > 0) statusLine = `<span style="color:var(--warning)">${warns} 家略紧</span> · ${healthy} 家通畅`;
-  else statusLine = `<span style="color:var(--success)">同步正常</span>`;
+  if (syncFailed > 0) {
+    statusLine = `<span style="color:var(--danger)">${syncFailed} 家同步失败</span>`;
+  } else {
+    statusLine = `<span style="color:var(--success)">同步正常</span>`;
+  }
+  // 额度状态 (单独行, 区分清楚)
+  const dangerCount = enabledOk.filter(p => minRemainingOf(p) < 20).length;
+  const warnCount = enabledOk.filter(p => { const r = minRemainingOf(p); return r >= 20 && r < 50; }).length;
+  const healthy = enabledOk.length - dangerCount - warnCount;
+  let quotaLine;
+  if (dangerCount > 0) quotaLine = `<span style="color:var(--danger)">${dangerCount} 家见底</span> · <span style="color:var(--warning)">${warnCount} 家略紧</span> · ${healthy} 家通畅`;
+  else if (warnCount > 0) quotaLine = `<span style="color:var(--warning)">${warnCount} 家略紧</span> · ${healthy} 家通畅`;
+  else quotaLine = `${healthy} 家通畅`;
   return `
     <div class="card summary-card" style="grid-column:1/-1">
       <div class="summary-header">
@@ -2204,6 +2212,7 @@ function renderSummaryWidget(providers) {
       <div class="summary-body">
         ${avg5h != null ? `<div class="summary-stat"><span class="summary-stat-label">5h 平均剩余</span><span class="summary-stat-pct" style="color:${avg5h < 20 ? 'var(--danger)' : avg5h < 50 ? 'var(--warning)' : 'var(--success)'}">${avg5h}%</span></div>` : ""}
         ${topDanger ? `<div class="summary-stat"><span class="summary-stat-label">最危险</span><span class="summary-stat-detail">${escapeHtml(topDanger.provider.label)} · ${escapeHtml(topDanger.ring.title)} 剩 ${topDanger.remaining}%${topDanger.ring.resetText ? ' (' + escapeHtml(topDanger.ring.resetText) + ')' : ''}</span></div>` : ""}
+        <div class="summary-stat"><span class="summary-stat-label">额度</span><span class="summary-stat-detail">${quotaLine}</span></div>
       </div>
     </div>
   `;
