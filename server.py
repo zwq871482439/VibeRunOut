@@ -1384,7 +1384,6 @@ INDEX_HTML = r"""<!doctype html>
     <button class="hdr-btn icon-only" onclick="toggleTheme()" id="theme-btn" title="切换主题"></button>
     <button class="hdr-btn icon-only" onclick="toggleBellPanel()" id="bell-btn" title="通知中心"><span class="bell-badge" id="bell-badge" style="display:none">0</span></button>
     <button class="hdr-btn icon-only" onclick="openSettings()" title="设置"></button>
-    <a id="preview-btn" class="hdr-btn icon-only" href="/preview" target="_blank" title="主题预览 (5 套设计稿)"></a>
     <button class="hdr-btn" id="refresh-btn" onclick="load()"></button>
   </div>
 </header>
@@ -1560,8 +1559,6 @@ function refreshHdrIcons() {
   if (setBtn) setBtn.innerHTML = icon("settings", 16);
   const refreshBtn = document.getElementById("refresh-btn");
   if (refreshBtn) refreshBtn.innerHTML = icon("refresh", 14) + ' Refresh';
-  const previewBtn = document.getElementById("preview-btn");
-  if (previewBtn) previewBtn.innerHTML = icon("eye", 16);
 }
 function toggleTheme() {
   currentDark = !currentDark;
@@ -3052,21 +3049,6 @@ class Handler(BaseHTTPRequestHandler):
         return self.rfile.read(length) if length else b""
 
     def do_GET(self):
-        if self.path == "/preview" or self.path.startswith("/preview?"):
-            # 主题预览页面 (5 个并排风格对比)
-            try:
-                preview_path = Path(__file__).parent / "theme-preview" / "index.html"
-                body = preview_path.read_bytes()
-            except FileNotFoundError:
-                self._send_text(404, "preview not found", ctype="text/plain; charset=utf-8")
-                return
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-
         if self.path == "/" or self.path.startswith("/?"):
             body = INDEX_HTML.encode("utf-8")
             self.send_response(200)
