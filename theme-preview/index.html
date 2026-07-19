@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>VibeRunOut — 最终主题预览 (4 themes × 4 accents)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&family=Berkeley+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* 强调色 */
+.accent-aurora { --accent: #8b5cf6; --accent-2: #34d399; }
+.accent-berry  { --accent: #7c3aed; --accent-2: #ec4899; }
+.accent-ocean  { --accent: #6366f1; --accent-2: #06b6d4; }
+.accent-sunset { --accent: #f59e0b; --accent-2: #ec4899; }
+:root { --accent: #6366f1; --accent-2: #06b6d4; }
+
+/* ============== 1. GLASS (Light) ============== */
+.theme-glass { --font-sans: "Geist","Inter",-apple-system,"PingFang SC",sans-serif; --font-mono: "Geist Mono","JetBrains Mono",ui-monospace,monospace; }
+.theme-glass {
+  background: radial-gradient(ellipse 800px 600px at 20% 0%, rgba(139,92,246,0.18), transparent 60%), radial-gradient(ellipse 700px 500px at 80% 100%, rgba(52,211,153,0.15), transparent 60%), radial-gradient(ellipse 500px 400px at 50% 50%, rgba(236,72,153,0.10), transparent 60%), linear-gradient(180deg, #f8f7fc 0%, #f0eef8 100%);
+  color: #1d1d2c; min-height: 100vh; padding: 40px 0;
+}
+.theme-glass .card { background: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.7); border-radius: 22px; padding: 20px; backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 8px 24px rgba(99,90,150,0.10), inset 0 1px 0 rgba(255,255,255,0.6); }
+.theme-glass .h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
+.theme-glass .alert-bar { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 14px; padding: 10px 16px; margin-bottom: 16px; color: #b91c1c; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); }
+.theme-glass .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; max-width: 1100px; margin: 0 auto; }
+.theme-glass .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.theme-glass .card-h2 { font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em; }
+.theme-glass .dot { width: 8px; height: 8px; border-radius: 50%; }
+.theme-glass .rings-row { display: flex; gap: 14px; }
+.theme-glass .ring-block { flex: 1; display: flex; align-items: center; gap: 10px; }
+.theme-glass .ring-svg { width: 100px; height: 100px; flex-shrink: 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.06)); }
+.theme-glass .ring-track { fill: none; stroke: rgba(0,0,0,0.08); }
+.theme-glass .ring-fill { fill: none; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; stroke: var(--accent); }
+.theme-glass .ring-fill.danger { stroke: #ef4444; }
+.theme-glass .ring-text { font-family: var(--font-mono); }
+.theme-glass .ring-pct { font-size: 22px; font-weight: 700; }
+.theme-glass .ring-label { font-size: 10px; color: #6b6b85; text-transform: uppercase; }
+.theme-glass .meta { font-size: 12px; color: #6b6b85; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; }
+.theme-glass .trend-card { grid-column: 1/-1; }
+.theme-glass .trend-h { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.theme-glass .chip { display: inline-block; padding: 3px 10px; border: 1px solid rgba(0,0,0,0.1); border-radius: 999px; font-size: 11px; color: #6b6b85; background: rgba(255,255,255,0.5); }
+.theme-glass .chip.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent; }
+.theme-glass .legend { font-size: 11px; color: #6b6b85; margin-top: 6px; }
+
+/* ============== 2. MINIMAL (Light) ============== */
+.theme-minimal { --font-sans: "Inter Tight","Inter",-apple-system,"PingFang SC",sans-serif; --font-mono: "Berkeley Mono","JetBrains Mono",ui-monospace,monospace; }
+.theme-minimal { background: #ffffff; color: #0a0a0a; min-height: 100vh; padding: 40px 0; }
+.theme-minimal .card { background: #ffffff; border: 1px solid #e6e8eb; border-radius: 10px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.theme-minimal .h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.025em; }
+.theme-minimal .alert-bar { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; color: #b91c1c; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+.theme-minimal .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; max-width: 1100px; margin: 0 auto; }
+.theme-minimal .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.theme-minimal .card-h2 { font-size: 15px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
+.theme-minimal .dot { width: 8px; height: 8px; border-radius: 50%; }
+.theme-minimal .rings-row { display: flex; gap: 14px; }
+.theme-minimal .ring-block { flex: 1; display: flex; align-items: center; gap: 10px; }
+.theme-minimal .ring-svg { width: 90px; height: 90px; flex-shrink: 0; }
+.theme-minimal .ring-track { fill: none; stroke: #f0f0f3; stroke-width: 3; }
+.theme-minimal .ring-fill { fill: none; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; stroke: var(--accent); stroke-width: 3; }
+.theme-minimal .ring-fill.danger { stroke: #ff3b30; }
+.theme-minimal .ring-text { font-family: var(--font-mono); }
+.theme-minimal .ring-pct { font-size: 20px; font-weight: 600; }
+.theme-minimal .ring-label { font-size: 10px; color: #6b7280; }
+.theme-minimal .meta { font-size: 12px; color: #6b7280; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e6e8eb; display: flex; justify-content: space-between; }
+.theme-minimal .trend-card { grid-column: 1/-1; }
+.theme-minimal .trend-h { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.theme-minimal .chip { display: inline-block; padding: 3px 10px; border: 1px solid #e6e8eb; border-radius: 999px; font-size: 11px; color: #6b7280; }
+.theme-minimal .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.theme-minimal .legend { font-size: 11px; color: #6b7280; margin-top: 6px; }
+
+/* ============== 3. DATA (Dark) ============== */
+.theme-data { --font-sans: "Inter",-apple-system,monospace,sans-serif; --font-mono: "Sora","JetBrains Mono",ui-monospace,monospace; }
+.theme-data { background: #0b0c0e; color: #d8d8d8; min-height: 100vh; padding: 40px 0; }
+.theme-data .card { background: #181b1f; border: 1px solid #2a2f38; border-radius: 4px; padding: 18px; }
+.theme-data .h1 { font-size: 18px; font-weight: 500; font-family: var(--font-mono); }
+.theme-data .alert-bar { background: #2a1212; border: 1px solid #5b1f1f; border-radius: 4px; padding: 8px 14px; margin-bottom: 14px; color: #ff5c5c; font-size: 12px; font-family: var(--font-mono); display: flex; align-items: center; gap: 10px; }
+.theme-data .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; max-width: 1100px; margin: 0 auto; }
+.theme-data .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #2a2f38; }
+.theme-data .card-h2 { font-size: 13px; font-weight: 500; margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); }
+.theme-data .dot { width: 8px; height: 8px; border-radius: 2px; }
+.theme-data .rings-row { display: flex; gap: 14px; }
+.theme-data .ring-block { flex: 1; display: flex; align-items: center; gap: 10px; }
+.theme-data .ring-svg { width: 96px; height: 96px; flex-shrink: 0; }
+.theme-data .ring-track { fill: none; stroke: #2a2f38; }
+.theme-data .ring-fill { fill: none; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; stroke: var(--accent); stroke-width: 3; }
+.theme-data .ring-fill.danger { stroke: #ff5c5c; }
+.theme-data .ring-text { font-family: var(--font-mono); }
+.theme-data .ring-pct { font-size: 24px; font-weight: 600; }
+.theme-data .ring-label { font-size: 9px; color: #6b6f78; text-transform: uppercase; }
+.theme-data .meta { font-size: 11px; color: #6b6f78; margin-top: 12px; padding-top: 10px; border-top: 1px solid #2a2f38; display: flex; justify-content: space-between; font-family: var(--font-mono); }
+.theme-data .trend-card { grid-column: 1/-1; }
+.theme-data .trend-h { font-size: 12px; font-weight: 500; margin-bottom: 10px; font-family: var(--font-mono); }
+.theme-data .chip { display: inline-block; padding: 2px 8px; border: 1px solid #2a2f38; border-radius: 3px; font-size: 11px; color: #a8acb3; background: #0b0c0e; font-family: var(--font-mono); }
+.theme-data .chip.active { background: var(--accent); color: #0b0c0e; border-color: var(--accent); }
+.theme-data .legend { font-size: 11px; color: #a8acb3; margin-top: 6px; font-family: var(--font-mono); }
+
+/* ============== 4. BRAND (Light) ============== */
+.theme-brand { --font-sans: "Geist","Inter",-apple-system,"PingFang SC",sans-serif; --font-mono: "Geist Mono","JetBrains Mono",ui-monospace,monospace; }
+.theme-brand { background: #fafafa; color: #000; min-height: 100vh; padding: 40px 0; }
+.theme-brand .card { background: #ffffff; border: 1px solid #eaeaea; border-radius: 24px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.theme-brand .h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent; }
+.theme-brand .alert-bar { background: linear-gradient(135deg, #fef2f2, #fff1f2); border: 1.5px solid #fecaca; border-radius: 14px; padding: 12px 18px; margin-bottom: 18px; color: #b91c1c; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(239,68,68,0.08); }
+.theme-brand .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; max-width: 1100px; margin: 0 auto; }
+.theme-brand .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.theme-brand .card-h2 { font-size: 17px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px; letter-spacing: -0.01em; }
+.theme-brand .dot { width: 10px; height: 10px; border-radius: 50%; }
+.theme-brand .rings-row { display: flex; gap: 18px; }
+.theme-brand .ring-block { flex: 1; display: flex; align-items: center; gap: 12px; }
+.theme-brand .ring-svg { width: 120px; height: 120px; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.06)); }
+.theme-brand .ring-track { fill: none; stroke: #f0f0f3; stroke-width: 10; }
+.theme-brand .ring-fill { fill: none; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; stroke: var(--accent); stroke-width: 10; }
+.theme-brand .ring-fill.danger { stroke: #ef4444; }
+.theme-brand .ring-text { font-family: var(--font-mono); }
+.theme-brand .ring-pct { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
+.theme-brand .ring-label { font-size: 10px; color: #9ca3af; font-weight: 500; text-transform: uppercase; }
+.theme-brand .meta { font-size: 12px; color: #525252; margin-top: 14px; padding-top: 14px; border-top: 1px solid #eaeaea; display: flex; justify-content: space-between; font-weight: 500; }
+.theme-brand .trend-card { grid-column: 1/-1; background: linear-gradient(180deg, #fff 0%, #fafafa 100%); }
+.theme-brand .trend-h { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+.theme-brand .chip { display: inline-block; padding: 4px 12px; border: 1.5px solid #e5e5e5; border-radius: 999px; font-size: 12px; color: #525252; font-weight: 500; }
+.theme-brand .chip.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent; }
+.theme-brand .legend { font-size: 12px; color: #525252; margin-top: 8px; font-weight: 500; }
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+.theme-label { text-align: center; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 4px; }
+.theme-label small { display: block; font-size: 11px; font-weight: 500; color: #888; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 4px; }
+</style>
+</head>
+<body class="theme-glass accent-aurora">
+
+<section style="padding:40px 24px 60px;border-bottom:4px solid #999">
+  <h1 class="theme-label">1. Glass <small>Geist + Geist Mono · 磨砂玻璃 · 旗舰</small></h1>
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="alert-bar">⚠ <b>Kimi Code</b> · 5 小时 危险 · 剩 5% · 11 分钟后重置</div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.2)"></span>Z.ai / 智谱 GLM</h2>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#10b981;font-weight:500">
+            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.6)"></span>通畅
+          </span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42" stroke-width="8"></circle><circle class="ring-fill" cx="50" cy="50" r="42" stroke-width="8" stroke-dasharray="263.9" stroke-dashoffset="13.2"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">95%</div><div class="ring-label">5 H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42" stroke-width="8"></circle><circle class="ring-fill" cx="50" cy="50" r="42" stroke-width="8" stroke="#3b82f6" stroke-dasharray="263.9" stroke-dashoffset="5.3"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">98%</div><div class="ring-label">WEEK</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 4h36m</span><span>WEEK: 6d15h</span></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,0.2)"></span>MiniMax Coding Plan</h2>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#10b981;font-weight:500"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.6)"></span>通畅</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42" stroke-width="8"></circle><circle class="ring-fill" cx="50" cy="50" r="42" stroke-width="8" stroke="#7c3aed" stroke-dasharray="263.9" stroke-dashoffset="0"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">100%</div><div class="ring-label">5 H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42" stroke-width="8"></circle><circle class="ring-fill" cx="50" cy="50" r="42" stroke-width="8" stroke="#7c3aed" stroke-dasharray="263.9" stroke-dashoffset="47.5"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">82%</div><div class="ring-label">WEEK</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 3h48m</span><span>WEEK: 1d22h</span></div>
+      </div>
+      <div class="card" style="background:rgba(239,68,68,0.10);border-color:rgba(239,68,68,0.35)">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#1f1f1f;box-shadow:0 0 0 3px rgba(0,0,0,0.2)"></span>Kimi Code</h2>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#ef4444;font-weight:500"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.6)"></span>危险</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42" stroke-width="8"></circle><circle class="ring-fill danger" cx="50" cy="50" r="42" stroke-width="8" stroke-dasharray="263.9" stroke-dashoffset="250.7"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct" style="color:#ef4444">5%</div><div class="ring-label">5 H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42" stroke-width="8"></circle><circle class="ring-fill" cx="50" cy="50" r="42" stroke-width="8" stroke="#1f1f1f" stroke-dasharray="263.9" stroke-dashoffset="34.3"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">87%</div><div class="ring-label">MONTH</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 11m</span><span>MONTH: 6d13h</span></div>
+      </div>
+      <div class="card trend-card">
+        <div class="trend-h">📈 趋势
+          <span class="chip active" style="margin-left:8px">zai</span>
+          <span class="chip active">MiniMax</span>
+          <span class="chip">Kimi</span>
+          <span class="chip" style="margin-left:8px">5H</span>
+          <span class="chip active">WEEK</span>
+        </div>
+        <div style="height:160px;position:relative">
+          <svg viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:100%">
+            <line x1="0" y1="28" x2="600" y2="28" stroke="rgba(0,0,0,0.06)"/>
+            <line x1="0" y1="70" x2="600" y2="70" stroke="rgba(0,0,0,0.06)"/>
+            <line x1="0" y1="112" x2="600" y2="112" stroke="rgba(0,0,0,0.06)"/>
+            <polyline fill="none" stroke="#3b82f6" stroke-width="2" points="20,46 100,42 180,30 260,33 340,22 420,15 500,18 580,10"/>
+            <polyline fill="none" stroke="#7c3aed" stroke-width="2" points="20,22 100,26 180,18 260,15 340,30 420,38 500,56 580,68"/>
+          </svg>
+        </div>
+        <div class="legend">■ zai · WEEK   ■ MiniMax · WEEK</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Minimal -->
+<section class="theme-minimal accent-berry" style="padding:40px 24px 60px;border-bottom:4px solid #999">
+  <h1 class="theme-label" style="color:#0a0a0a">2. Minimal <small style="color:#888">Inter Tight + Berkeley Mono · Linear 极简</small></h1>
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="alert-bar">⚠ <b>Kimi Code</b> · 5 H 危险 · 剩 5% · 11m 后</div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#3b82f6"></span>Z.ai / 智谱 GLM</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#00c853"><span style="width:6px;height:6px;border-radius:50%;background:#00c853"></span>OK</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 90 90"><circle class="ring-track" cx="45" cy="45" r="38" stroke-width="3"></circle><circle class="ring-fill" cx="45" cy="45" r="38" stroke-width="3" stroke="#3b82f6" stroke-dasharray="238.8" stroke-dashoffset="11.9"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">95%</div><div class="ring-label">5H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 90 90"><circle class="ring-track" cx="45" cy="45" r="38" stroke-width="3"></circle><circle class="ring-fill" cx="45" cy="45" r="38" stroke-width="3" stroke="#3b82f6" stroke-dasharray="238.8" stroke-dashoffset="4.8"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">98%</div><div class="ring-label">W</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 4h36m</span><span>W: 6d15h</span></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#7c3aed"></span>MiniMax Coding Plan</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#00c853"><span style="width:6px;height:6px;border-radius:50%;background:#00c853"></span>OK</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 90 90"><circle class="ring-track" cx="45" cy="45" r="38" stroke-width="3"></circle><circle class="ring-fill" cx="45" cy="45" r="38" stroke-width="3" stroke="#7c3aed" stroke-dasharray="238.8" stroke-dashoffset="0"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">100%</div><div class="ring-label">5H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 90 90"><circle class="ring-track" cx="45" cy="45" r="38" stroke-width="3"></circle><circle class="ring-fill" cx="45" cy="45" r="38" stroke-width="3" stroke="#7c3aed" stroke-dasharray="238.8" stroke-dashoffset="43.0"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">82%</div><div class="ring-label">W</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 3h48m</span><span>W: 1d22h</span></div>
+      </div>
+      <div class="card" style="background:#fef2f2;border-color:#fecaca">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#1f1f1f"></span>Kimi Code</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#ff3b30"><span style="width:6px;height:6px;border-radius:50%;background:#ff3b30"></span>CRITICAL</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 90 90"><circle class="ring-track" cx="45" cy="45" r="38" stroke-width="3"></circle><circle class="ring-fill danger" cx="45" cy="45" r="38" stroke-width="3" stroke-dasharray="238.8" stroke-dashoffset="226.8"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct" style="color:#ff3b30">5%</div><div class="ring-label">5H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 90 90"><circle class="ring-track" cx="45" cy="45" r="38" stroke-width="3"></circle><circle class="ring-fill" cx="45" cy="45" r="38" stroke-width="3" stroke="#1f1f1f" stroke-dasharray="238.8" stroke-dashoffset="31.0"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">87%</div><div class="ring-label">M</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 11m</span><span>M: 6d13h</span></div>
+      </div>
+      <div class="card trend-card">
+        <div class="trend-h">Trend
+          <span class="chip active" style="margin-left:8px">zai</span><span class="chip active">minimax</span><span class="chip">kimi</span>
+        </div>
+        <div style="height:140px;position:relative">
+          <svg viewBox="0 0 600 120" preserveAspectRatio="none" style="width:100%;height:100%">
+            <line x1="0" y1="24" x2="600" y2="24" stroke="#f0f0f3"/><line x1="0" y1="60" x2="600" y2="60" stroke="#f0f0f3"/><line x1="0" y1="96" x2="600" y2="96" stroke="#f0f0f3"/>
+            <polyline fill="none" stroke="#3b82f6" stroke-width="2" points="20,40 100,36 180,26 260,28 340,18 420,12 500,15 580,8"/>
+            <polyline fill="none" stroke="#7c3aed" stroke-width="2" points="20,18 100,22 180,14 260,12 340,24 420,30 500,46 580,56"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Data (Dark) -->
+<section class="theme-data accent-aurora" style="padding:40px 24px 60px;border-bottom:4px solid #999">
+  <h1 class="theme-label" style="color:#d8d8d8">3. Data <small style="color:#6b6f78">Sora + JetBrains Mono · Grafana 仪表盘</small></h1>
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="alert-bar">[ALERT] kimi · 5H · DANGER · 5% REMAINING · T-11m</div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#3b82f6"></span>zai.gl.m</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#00d9a3"><span style="width:6px;height:6px;background:#00d9a3"></span>OK</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 96 96"><circle class="ring-track" cx="48" cy="48" r="40" stroke-width="3"></circle><circle class="ring-fill" cx="48" cy="48" r="40" stroke-width="3" stroke="#3b82f6" stroke-dasharray="251.3" stroke-dashoffset="12.6"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">95%</div><div class="ring-label">5_H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 96 96"><circle class="ring-track" cx="48" cy="48" r="40" stroke-width="3"></circle><circle class="ring-fill" cx="48" cy="48" r="40" stroke-width="3" stroke="#3b82f6" stroke-dasharray="251.3" stroke-dashoffset="5.0"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">98%</div><div class="ring-label">WEEK</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 4h36m</span><span>W: 6d15h</span></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#7c3aed"></span>minimax</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#00d9a3"><span style="width:6px;height:6px;background:#00d9a3"></span>OK</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 96 96"><circle class="ring-track" cx="48" cy="48" r="40" stroke-width="3"></circle><circle class="ring-fill" cx="48" cy="48" r="40" stroke-width="3" stroke="#7c3aed" stroke-dasharray="251.3" stroke-dashoffset="0"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">100%</div><div class="ring-label">5_H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 96 96"><circle class="ring-track" cx="48" cy="48" r="40" stroke-width="3"></circle><circle class="ring-fill" cx="48" cy="48" r="40" stroke-width="3" stroke="#7c3aed" stroke-dasharray="251.3" stroke-dashoffset="45.2"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">82%</div><div class="ring-label">WEEK</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 3h48m</span><span>W: 1d22h</span></div>
+      </div>
+      <div class="card" style="background:#1a0a0a;border-color:#5b1f1f">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#1f1f1f"></span>kimi</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#ff5c5c"><span style="width:6px;height:6px;background:#ff5c5c;box-shadow:0 0 4px #ff5c5c"></span>DANGER</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 96 96"><circle class="ring-track" cx="48" cy="48" r="40" stroke-width="3"></circle><circle class="ring-fill danger" cx="48" cy="48" r="40" stroke-width="3" stroke-dasharray="251.3" stroke-dashoffset="238.7"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct" style="color:#ff5c5c">5%</div><div class="ring-label">5_H</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 96 96"><circle class="ring-track" cx="48" cy="48" r="40" stroke-width="3"></circle><circle class="ring-fill" cx="48" cy="48" r="40" stroke-width="3" stroke="#a8acb3" stroke-dasharray="251.3" stroke-dashoffset="32.7"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">87%</div><div class="ring-label">MONTH</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H: 11m</span><span>M: 6d13h</span></div>
+      </div>
+      <div class="card trend-card">
+        <div class="trend-h">▣ TREND
+          <span class="chip active" style="margin-left:8px">zai</span><span class="chip active">minimax</span>
+        </div>
+        <div style="height:140px;position:relative">
+          <svg viewBox="0 0 600 120" preserveAspectRatio="none" style="width:100%;height:100%">
+            <line x1="0" y1="24" x2="600" y2="24" stroke="#1a1f2b"/><line x1="0" y1="60" x2="600" y2="60" stroke="#1a1f2b"/><line x1="0" y1="96" x2="600" y2="96" stroke="#1a1f2b"/>
+            <polyline fill="none" stroke="#3b82f6" stroke-width="1.5" points="20,40 100,36 180,26 260,28 340,18 420,12 500,15 580,8"/>
+            <polyline fill="none" stroke="#7c3aed" stroke-width="1.5" points="20,18 100,22 180,14 260,12 340,24 420,30 500,46 580,56"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Brand -->
+<section class="theme-brand accent-ocean" style="padding:40px 24px 60px;border-bottom:4px solid #999">
+  <h1 class="theme-label">4. Brand <small style="color:#888">Geist + Geist Mono · Vercel 营销渐变</small></h1>
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="alert-bar">⚠ <b>Kimi Code</b> · 5 小时 处于危险状态 · 剩 5% · 11 分钟后重置</div>
+    <div class="grid">
+      <div class="card" style="background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);border-color:#bfdbfe">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.2)"></span>Z.ai / 智谱 GLM</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#10b981;font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,0.2)"></span>通畅</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 120 120"><circle class="ring-track" cx="60" cy="60" r="50" stroke-width="10"></circle><circle class="ring-fill" cx="60" cy="60" r="50" stroke-width="10" stroke="#3b82f6" stroke-dasharray="314.2" stroke-dashoffset="15.7"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">95%</div><div class="ring-label">REMAIN</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 120 120"><circle class="ring-track" cx="60" cy="60" r="50" stroke-width="10"></circle><circle class="ring-fill" cx="60" cy="60" r="50" stroke-width="10" stroke="#3b82f6" stroke-dasharray="314.2" stroke-dashoffset="6.3"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">98%</div><div class="ring-label">REMAIN</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H</span><span>WEEK</span></div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,#f5f3ff 0%,#fff 60%);border-color:#ddd6fe">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,0.2)"></span>MiniMax Coding Plan</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#10b981;font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,0.2)"></span>通畅</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 120 120"><circle class="ring-track" cx="60" cy="60" r="50" stroke-width="10"></circle><circle class="ring-fill" cx="60" cy="60" r="50" stroke-width="10" stroke="#7c3aed" stroke-dasharray="314.2" stroke-dashoffset="0"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">100%</div><div class="ring-label">REMAIN</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 120 120"><circle class="ring-track" cx="60" cy="60" r="50" stroke-width="10"></circle><circle class="ring-fill" cx="60" cy="60" r="50" stroke-width="10" stroke="#7c3aed" stroke-dasharray="314.2" stroke-dashoffset="56.6"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">82%</div><div class="ring-label">REMAIN</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H</span><span>WEEK</span></div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,#fef2f2 0%,#fff 60%);border-color:#fecaca;box-shadow:0 4px 16px rgba(239,68,68,0.1)">
+        <div class="card-header">
+          <h2 class="card-h2"><span class="dot" style="background:#1f1f1f;box-shadow:0 0 0 3px rgba(0,0,0,0.2)"></span>Kimi Code</h2>
+          <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#ef4444;font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,0.3)"></span>危险</span>
+        </div>
+        <div class="rings-row">
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 120 120"><circle class="ring-track" cx="60" cy="60" r="50" stroke-width="10"></circle><circle class="ring-fill danger" cx="60" cy="60" r="50" stroke-width="10" stroke-dasharray="314.2" stroke-dashoffset="298.5"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct" style="color:#ef4444">5%</div><div class="ring-label">REMAIN</div></div>
+          </div>
+          <div class="ring-block">
+            <svg class="ring-svg" viewBox="0 0 120 120"><circle class="ring-track" cx="60" cy="60" r="50" stroke-width="10"></circle><circle class="ring-fill" cx="60" cy="60" r="50" stroke-width="10" stroke="#1f1f1f" stroke-dasharray="314.2" stroke-dashoffset="40.8"></circle></svg>
+            <div class="ring-text" style="text-align:center;flex:1"><div class="ring-pct">87%</div><div class="ring-label">REMAIN</div></div>
+          </div>
+        </div>
+        <div class="meta"><span>5H</span><span>MONTH</span></div>
+      </div>
+      <div class="card trend-card" style="background:linear-gradient(180deg,#fff 0%,#fafafa 100%)">
+        <div class="trend-h">📈 趋势
+          <span class="chip active" style="margin-left:8px">zai</span><span class="chip active">MiniMax</span>
+        </div>
+        <div style="height:160px;position:relative">
+          <svg viewBox="0 0 600 140" preserveAspectRatio="none" style="width:100%;height:100%">
+            <line x1="0" y1="28" x2="600" y2="28" stroke="#f0f0f3"/><line x1="0" y1="70" x2="600" y2="70" stroke="#f0f0f3"/><line x1="0" y1="112" x2="600" y2="112" stroke="#f0f0f3"/>
+            <polyline fill="none" stroke="#3b82f6" stroke-width="2.5" points="20,46 100,42 180,30 260,33 340,22 420,15 500,18 580,10"/>
+            <polyline fill="none" stroke="#7c3aed" stroke-width="2.5" points="20,22 100,26 180,18 260,15 340,30 420,38 500,56 580,68"/>
+          </svg>
+        </div>
+        <div class="legend">■ zai · WEEK   ■ MiniMax · WEEK</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

@@ -366,52 +366,369 @@ INDEX_HTML = r"""<!doctype html>
 <title>VibeRunOut — vibe 见底警告</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&family=Berkeley+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #f7f7f8;
-    --card: #ffffff;
-    --card-alt: #fcfcfd;
-    --border: #e6e6ea;
-    --text: #1f1f1f;
-    --muted: #6b7280;
-    --bar: #e5e7eb;
-    --err-bg: #fff1f2;
-    --err-fg: #b91c1c;
-    --err-border: #fecdd3;
-    --focus: #2563eb;
-    --focus-ring: rgba(37,99,235,0.15);
-    --toggle-off: #d1d5db;
-    --toggle-on: #22c55e;
+  /* ============================================================
+     主题系统 - 4 套主题 × 2 明暗 × 4 强调色
+     class: html.theme-{name}.dark
+     accent: html.accent-{name}
+     ============================================================ */
+
+  /* 强调色 (任何主题都可叠加) */
+  html.accent-aurora { --accent: #8b5cf6; --accent-2: #34d399; --accent-fg: #ffffff; }
+  html.accent-berry  { --accent: #7c3aed; --accent-2: #ec4899; --accent-fg: #ffffff; }
+  html.accent-ocean  { --accent: #6366f1; --accent-2: #06b6d4; --accent-fg: #ffffff; }
+  html.accent-sunset { --accent: #f59e0b; --accent-2: #ec4899; --accent-fg: #ffffff; }
+  /* 没 accent 时的回退 */
+  :root { --accent: #6366f1; --accent-2: #06b6d4; --accent-fg: #ffffff; }
+
+  /* 1. GLASS 主题 (旗舰) - 玻璃拟态 + 渐变光晕 */
+  html.theme-glass {
+    --font-sans: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", "Roboto Mono", ui-monospace, monospace;
+    --radius-sm: 10px;
+    --radius: 14px;
+    --radius-lg: 22px;
+    --radius-full: 999px;
   }
-  html.dark {
-    --bg: #0f1115;
-    --card: #1a1d23;
-    --card-alt: #20242c;
+  html.theme-glass {
+    background:
+      radial-gradient(ellipse 800px 600px at 20% 0%, rgba(139,92,246,0.18), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 80% 100%, rgba(52,211,153,0.15), transparent 60%),
+      radial-gradient(ellipse 500px 400px at 50% 50%, rgba(236,72,153,0.10), transparent 60%),
+      linear-gradient(180deg, #f8f7fc 0%, #f0eef8 100%);
+    color: #1d1d2c;
+    min-height: 100vh;
+  }
+  html.theme-glass {
+    --bg: transparent;
+    --card: rgba(255,255,255,0.55);
+    --card-alt: rgba(255,255,255,0.35);
+    --border: rgba(255,255,255,0.7);
+    --border-strong: rgba(255,255,255,0.9);
+    --text: #1d1d2c;
+    --muted: #6b6b85;
+    --bar: rgba(255,255,255,0.4);
+    --success: #10b981;
+    --success-bg: rgba(16,185,129,0.12);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245,158,11,0.12);
+    --danger: #ef4444;
+    --danger-bg: rgba(239,68,68,0.12);
+    --danger-border: rgba(239,68,68,0.3);
+    --focus: var(--accent);
+    --focus-ring: rgba(139,92,246,0.25);
+    --toggle-off: rgba(0,0,0,0.15);
+    --toggle-on: #10b981;
+    --err-bg: rgba(239,68,68,0.12);
+    --err-fg: #ef4444;
+    --err-border: rgba(239,68,68,0.3);
+    --shadow-sm: 0 4px 12px rgba(99,90,150,0.08), 0 1px 2px rgba(99,90,150,0.04);
+    --shadow-md: 0 8px 24px rgba(99,90,150,0.10), 0 2px 6px rgba(99,90,150,0.06), inset 0 1px 0 rgba(255,255,255,0.6);
+    --shadow-lg: 0 20px 60px rgba(99,90,150,0.15), 0 4px 12px rgba(99,90,150,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  html.theme-glass.dark {
+    background:
+      radial-gradient(ellipse 800px 600px at 20% 0%, rgba(139,92,246,0.32), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 80% 100%, rgba(52,211,153,0.22), transparent 60%),
+      radial-gradient(ellipse 500px 400px at 50% 50%, rgba(236,72,153,0.18), transparent 60%),
+      linear-gradient(180deg, #0e0a1f 0%, #0a0817 100%);
+    color: #e8e8f0;
+  }
+  html.theme-glass.dark {
+    --bg: transparent;
+    --card: rgba(20,18,38,0.55);
+    --card-alt: rgba(30,25,55,0.35);
+    --border: rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.20);
+    --text: #e8e8f0;
+    --muted: #8b8ba5;
+    --bar: rgba(255,255,255,0.06);
+    --success: #34d399;
+    --success-bg: rgba(52,211,153,0.15);
+    --warning: #fbbf24;
+    --warning-bg: rgba(251,191,36,0.15);
+    --danger: #f87171;
+    --danger-bg: rgba(248,113,113,0.15);
+    --danger-border: rgba(248,113,113,0.3);
+    --focus-ring: rgba(139,92,246,0.35);
+    --toggle-off: rgba(255,255,255,0.15);
+    --toggle-on: #34d399;
+    --err-bg: rgba(248,113,113,0.15);
+    --err-fg: #f87171;
+    --err-border: rgba(248,113,113,0.3);
+    --shadow-sm: 0 4px 12px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.15);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.08);
+    --shadow-lg: 0 20px 60px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10);
+  }
+  /* 玻璃特有: backdrop-filter 模糊 + 边框高光 */
+  html.theme-glass .card {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--border);
+  }
+  html.theme-glass .global-alert-inner {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+  html.theme-glass .modal {
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.6);
+  }
+  html.theme-glass.dark .modal {
+    background: rgba(20,18,38,0.7);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  html.theme-glass .ring-fill {
+    /* 圆环用 accent 渐变, 玻璃感 */
+    stroke: url(#ring-gradient-default) var(--accent, #6366f1);
+  }
+  html.theme-glass .ring-fill.success { stroke: var(--success); }
+  html.theme-glass .ring-fill.warning { stroke: var(--warning); }
+  html.theme-glass .ring-fill.danger { stroke: var(--danger); }
+  html.theme-glass .button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2, var(--accent)));
+    color: var(--accent-fg, #fff);
+    border: none;
+    box-shadow: 0 4px 12px rgba(139,92,246,0.25);
+  }
+  html.theme-glass .button.primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  html.theme-glass .ring-text .pct { font-weight: 700; }
+  html.theme-glass .header h1 { letter-spacing: -0.025em; }
+  html.theme-glass .card h2 { letter-spacing: -0.01em; }
+  html.theme-glass .chip.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    border-color: transparent;
+  }
+
+  /* 2. MINIMAL 主题 (Linear 极简) */
+  html.theme-minimal {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --card-alt: #fafafa;
+    --border: #e6e8eb;
+    --border-strong: #d8dde3;
+    --text: #0a0a0a;
+    --muted: #6b7280;
+    --bar: #f0f0f3;
+    --success: #00c853;
+    --success-bg: #ecfdf5;
+    --warning: #ff9500;
+    --warning-bg: #fffbeb;
+    --danger: #ff3b30;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --focus: var(--accent);
+    --focus-ring: rgba(0,0,0,0.05);
+    --toggle-off: #d4d4d8;
+    --toggle-on: #00c853;
+    --err-bg: #fef2f2;
+    --err-fg: #ff3b30;
+    --err-border: #fecaca;
+    --font-sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    --font-mono: "Berkeley Mono", "JetBrains Mono", "Roboto Mono", ui-monospace, monospace;
+    --radius-sm: 6px;
+    --radius: 8px;
+    --radius-lg: 10px;
+    --radius-full: 999px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.06);
+  }
+  html.theme-minimal.dark {
+    --bg: #0a0a0a;
+    --card: #131313;
+    --card-alt: #0f0f0f;
+    --border: #262626;
+    --border-strong: #404040;
+    --text: #fafafa;
+    --muted: #888888;
+    --bar: #1a1a1a;
+    --success: #00e676;
+    --success-bg: #022c1d;
+    --warning: #ffb74d;
+    --warning-bg: #2a1f08;
+    --danger: #ff5252;
+    --danger-bg: #2a1212;
+    --danger-border: #5b1f1f;
+    --focus-ring: rgba(255,255,255,0.08);
+    --toggle-off: #333333;
+    --toggle-on: #00e676;
+    --err-bg: #2a1212;
+    --err-fg: #ff5252;
+    --err-border: #5b1f1f;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  html.theme-minimal .ring-fill { stroke: var(--accent); }
+  html.theme-minimal .button.primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+  }
+  html.theme-minimal .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  html.theme-minimal .header h1 { letter-spacing: -0.025em; }
+  html.theme-minimal .ring-fill.success { stroke: var(--success); }
+  html.theme-minimal .ring-fill.warning { stroke: var(--warning); }
+  html.theme-minimal .ring-fill.danger { stroke: var(--danger); }
+
+  /* 3. DATA 主题 (Grafana 仪表盘) */
+  html.theme-data {
+    --bg: #0b0c0e;
+    --card: #181b1f;
+    --card-alt: #0b0c0e;
     --border: #2a2f38;
-    --text: #e5e7eb;
-    --muted: #8b95a5;
+    --border-strong: #3a4150;
+    --text: #d8d8d8;
+    --muted: #6b6f78;
     --bar: #2a2f38;
-    --err-bg: #2a1a1d;
-    --err-fg: #fca5a5;
-    --err-border: #5b2630;
-    --focus: #3b82f6;
-    --focus-ring: rgba(59,130,246,0.25);
-    --toggle-off: #3a3f48;
-    --toggle-on: #22c55e;
+    --success: #00d9a3;
+    --success-bg: #052e1f;
+    --warning: #f0b400;
+    --warning-bg: #2a1f08;
+    --danger: #ff5c5c;
+    --danger-bg: #2a1212;
+    --danger-border: #5b1f1f;
+    --focus: var(--accent);
+    --focus-ring: rgba(0,217,163,0.25);
+    --toggle-off: #3a4153;
+    --toggle-on: #00d9a3;
+    --err-bg: #2a1212;
+    --err-fg: #ff5c5c;
+    --err-border: #5b1f1f;
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", monospace, sans-serif;
+    --font-mono: "Sora", "JetBrains Mono", "Roboto Mono", ui-monospace, monospace;
+    --radius-sm: 3px;
+    --radius: 4px;
+    --radius-lg: 6px;
+    --radius-full: 999px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 2px 4px rgba(0,0,0,0.4);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  html.theme-data .ring-fill { stroke: var(--accent); }
+  html.theme-data .ring-fill.success { stroke: var(--success); }
+  html.theme-data .ring-fill.warning { stroke: var(--warning); }
+  html.theme-data .ring-fill.danger { stroke: var(--danger); }
+  html.theme-data .button.primary {
+    background: var(--accent);
+    color: #0b0c0e;
+    border: none;
+  }
+  html.theme-data .chip.active { background: var(--accent); color: #0b0c0e; border-color: var(--accent); }
+  html.theme-data .card-header { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  html.theme-data .rings-row .ring-block { padding: 8px 0; }
+
+  /* 4. BRAND 主题 (Vercel 营销渐变) */
+  html.theme-brand {
+    --bg: #fafafa;
+    --card: #ffffff;
+    --card-alt: #fafafa;
+    --border: #eaeaea;
+    --border-strong: #d4d4d4;
+    --text: #000;
+    --muted: #525252;
+    --bar: #f0f0f0;
+    --success: #10b981;
+    --success-bg: #ecfdf5;
+    --warning: #f59e0b;
+    --warning-bg: #fffbeb;
+    --danger: #ef4444;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --focus: var(--accent);
+    --focus-ring: rgba(124,58,237,0.2);
+    --toggle-off: #d4d4d8;
+    --toggle-on: #10b981;
+    --err-bg: #fef2f2;
+    --err-fg: #ef4444;
+    --err-border: #fecaca;
+    --font-sans: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+    --radius-sm: 12px;
+    --radius: 18px;
+    --radius-lg: 24px;
+    --radius-full: 999px;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.03);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.08);
+  }
+  html.theme-brand.dark {
+    --bg: #0a0a0a;
+    --card: #171717;
+    --card-alt: #0f0f0f;
+    --border: #262626;
+    --border-strong: #404040;
+    --text: #fafafa;
+    --muted: #a3a3a3;
+    --bar: #1f1f1f;
+    --success: #34d399;
+    --success-bg: #022c1d;
+    --warning: #fbbf24;
+    --warning-bg: #2a1f08;
+    --danger: #f87171;
+    --danger-bg: #2a1212;
+    --danger-border: #5b1f1f;
+    --focus-ring: rgba(124,58,237,0.3);
+    --toggle-off: #333333;
+    --toggle-on: #34d399;
+    --err-bg: #2a1212;
+    --err-fg: #f87171;
+    --err-border: #5b1f1f;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+  }
+  html.theme-brand .ring-fill { stroke: var(--accent); }
+  html.theme-brand .ring-fill.success { stroke: var(--success); }
+  html.theme-brand .ring-fill.warning { stroke: var(--warning); }
+  html.theme-brand .ring-fill.danger { stroke: var(--danger); }
+  html.theme-brand .button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2, var(--accent)));
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(124,58,237,0.25);
+  }
+  html.theme-brand .chip.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+    border-color: transparent;
+  }
+  html.theme-brand .header h1 {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
   }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
     background: var(--bg);
     color: var(--text);
-    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-          "Microsoft YaHei", sans-serif;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* 所有数字用 mono, 仪表盘精确感 */
+  .num, .pct, .ring-text .pct, .ring-meta .reset, .bp-meta,
+  .extras .extra-row .value, .alert-row input[type="number"] {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
   }
   header {
     padding: 24px 32px 12px;
     display: flex; align-items: baseline; justify-content: space-between;
   }
-  header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
   header .meta { color: var(--muted); font-size: 12px; }
   header .actions { display: flex; gap: 8px; align-items: center; }
   main {
@@ -425,9 +742,15 @@ INDEX_HTML = r"""<!doctype html>
   .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 20px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .2s, border-color .2s;
+  }
+  /* 危险卡片: 整张染色 */
+  .card.danger {
+    border-color: var(--danger-border);
+    background: linear-gradient(180deg, var(--danger-bg) 0%, var(--card) 60%);
   }
   .card-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -436,10 +759,12 @@ INDEX_HTML = r"""<!doctype html>
   .card-header h2 {
     margin: 0; font-size: 16px; font-weight: 600;
     display: flex; align-items: center; gap: 8px;
+    letter-spacing: -0.01em;
   }
   .card-header .dot {
     width: 10px; height: 10px; border-radius: 50%;
     background: var(--accent, #2B7FFF);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #2B7FFF) 15%, transparent);
   }
   .card-header .status {
     font-size: 12px; color: var(--muted);
@@ -448,14 +773,19 @@ INDEX_HTML = r"""<!doctype html>
   }
   .card-header .status .led {
     width: 8px; height: 8px; border-radius: 50%;
-    background: #22c55e;  /* 默认绿 (通畅) */
-    box-shadow: 0 0 4px rgba(34,197,94,0.5);
+    background: var(--success);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--success) 60%, transparent);
   }
+  .card-header .status.warn .led {
+    background: var(--warning);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--warning) 60%, transparent);
+  }
+  .card-header .status.warn { color: var(--warning); }
   .card-header .status.err .led {
-    background: var(--err-fg);
-    box-shadow: 0 0 4px rgba(239,68,68,0.5);
+    background: var(--danger);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--danger) 60%, transparent);
   }
-  .card-header .status.err { color: var(--err-fg); }
+  .card-header .status.err { color: var(--danger); }
   .section-title {
     display: flex; justify-content: space-between; align-items: center;
     font-weight: 500; margin-bottom: 8px;
@@ -463,11 +793,11 @@ INDEX_HTML = r"""<!doctype html>
   .section-title .label { color: var(--text); }
   .section-title .pct { font-variant-numeric: tabular-nums; color: var(--text); }
   .bar {
-    height: 8px; background: var(--bar); border-radius: 999px;
+    height: 8px; background: var(--bar); border-radius: var(--radius-full);
     overflow: hidden;
   }
   .bar > div {
-    height: 100%; border-radius: 999px;
+    height: 100%; border-radius: var(--radius-full);
     background: var(--accent, #2B7FFF);
     transition: width .3s ease;
   }
@@ -476,6 +806,37 @@ INDEX_HTML = r"""<!doctype html>
   .section:last-child { margin-bottom: 0; }
 
   .muted { color: var(--muted); }
+
+  /* 全局告警条 (顶栏下方) */
+  .global-alert {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+  .global-alert-inner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    font-size: 13px;
+    border: 1px solid;
+  }
+  .global-alert-inner.danger {
+    background: var(--danger-bg);
+    border-color: var(--danger-border);
+    color: var(--danger);
+  }
+  .global-alert-inner.warn {
+    background: var(--warning-bg);
+    border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+    color: var(--warning);
+  }
+  .global-alert-inner .ga-pct {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 16px;
+    margin-left: auto;
+  }
 
   /* ----- Ring ----- */
   .ring-block { display: flex; align-items: center; gap: 16px; padding: 12px 0; }
@@ -493,8 +854,8 @@ INDEX_HTML = r"""<!doctype html>
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     line-height: 1;
   }
-  .ring-text .pct { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .ring-text .label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .ring-text .pct { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .ring-text .label { font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 500; }
   .ring-wrapper { position: relative; }
   .ring-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .ring-meta .title { font-size: 14px; font-weight: 600; color: var(--text); }
@@ -541,15 +902,71 @@ INDEX_HTML = r"""<!doctype html>
     height: 60px;
   }
 
+  /* 趋势组件卡片 (独立一张大卡) */
+  .trend-card {
+    grid-column: 1 / -1;
+  }
+  .trend-card .tc-header {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .trend-card .tc-title {
+    font-size: 14px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-right: 8px;
+  }
+  .trend-card .tc-chips {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  }
+  .trend-card .tc-group {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding-left: 8px; border-left: 1px solid var(--border);
+  }
+  .trend-card .tc-group:first-of-type { border-left: 0; padding-left: 0; }
+  .trend-card .tc-group-label {
+    font-size: 11px; color: var(--muted); font-weight: 500;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--card);
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--border-strong); }
+  .chip.active {
+    background: var(--focus);
+    color: white;
+    border-color: var(--focus);
+  }
+  .chip .swatch {
+    width: 8px; height: 8px; border-radius: 2px;
+    background: currentColor;
+  }
+  .trend-card .tc-canvas-wrap {
+    position: relative;
+    height: 280px;
+  }
+  .trend-card .tc-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 13px; gap: 8px;
+    height: 200px;
+  }
+
   .err {
     background: var(--err-bg); color: var(--err-fg);
-    border: 1px solid var(--err-border); border-radius: 10px;
+    border: 1px solid var(--err-border); border-radius: var(--radius);
     padding: 12px; font-size: 13px;
   }
   .err a { color: var(--err-fg); }
   button {
     border: 1px solid var(--border); background: var(--card);
-    padding: 6px 12px; border-radius: 8px; cursor: pointer;
+    padding: 6px 12px; border-radius: var(--radius); cursor: pointer;
     font-size: 12px; color: var(--text);
   }
   button:hover { background: var(--bg); }
@@ -569,11 +986,11 @@ INDEX_HTML = r"""<!doctype html>
   .modal-backdrop.open { display: flex; }
   .modal {
     background: white;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     max-width: 720px; width: 90vw;
     max-height: 85vh; overflow-y: auto;
     padding: 24px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-lg);
   }
   .modal h2 { margin: 0 0 16px; font-size: 18px; }
   .modal h3 { margin: 16px 0 8px; font-size: 14px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -588,7 +1005,7 @@ INDEX_HTML = r"""<!doctype html>
   }
   .template-card {
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 12px;
     display: flex; flex-direction: column; gap: 4px;
   }
@@ -599,7 +1016,7 @@ INDEX_HTML = r"""<!doctype html>
 
   .provider-card {
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 12px;
     margin-bottom: 10px;
     background: var(--card-alt);
@@ -611,7 +1028,7 @@ INDEX_HTML = r"""<!doctype html>
   }
   .provider-card .pc-color {
     width: 28px; height: 28px;
-    border: 1px solid var(--border); border-radius: 6px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 0; cursor: pointer; background: none;
     flex-shrink: 0;
   }
@@ -619,7 +1036,7 @@ INDEX_HTML = r"""<!doctype html>
   .provider-card .pc-color::-webkit-color-swatch { border: none; border-radius: 4px; }
   .provider-card .pc-label {
     flex: 1;
-    border: 1px solid transparent; border-radius: 6px;
+    border: 1px solid transparent; border-radius: var(--radius-sm);
     padding: 4px 8px; font-size: 14px; font-weight: 600;
     background: white;
   }
@@ -632,7 +1049,7 @@ INDEX_HTML = r"""<!doctype html>
   .provider-card .pc-delete {
     border: none; background: none; cursor: pointer;
     color: var(--muted); font-size: 18px; padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
   }
   .provider-card .pc-delete:hover { color: var(--err-fg); background: var(--err-bg); }
   .provider-card .pc-drag {
@@ -657,7 +1074,7 @@ INDEX_HTML = r"""<!doctype html>
     width: 16px; height: 16px; left: 2px; top: 2px;
     background: white; border-radius: 50%;
     transition: transform .2s;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-sm);
   }
   .provider-card .pc-toggle input:checked + .pc-toggle-slider { background: var(--toggle-on); }
   .provider-card .pc-toggle input:checked + .pc-toggle-slider::before { transform: translateX(16px); }
@@ -672,7 +1089,7 @@ INDEX_HTML = r"""<!doctype html>
   .provider-card .pc-body input[type="text"],
   .provider-card .pc-body input[type="password"],
   .provider-card .pc-body select {
-    border: 1px solid var(--border); border-radius: 6px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 5px 8px; font-size: 12px; width: 100%;
     font-family: inherit;
     background: var(--card);
@@ -696,13 +1113,13 @@ INDEX_HTML = r"""<!doctype html>
 
   textarea {
     width: 100%; min-height: 200px;
-    border: 1px solid var(--border); border-radius: 8px;
+    border: 1px solid var(--border); border-radius: var(--radius);
     padding: 8px; font-family: ui-monospace, monospace; font-size: 12px;
     resize: vertical;
   }
   .custom-box {
     border: 1px dashed var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 12px;
     margin-top: 10px;
   }
@@ -732,7 +1149,7 @@ INDEX_HTML = r"""<!doctype html>
   .toast {
     position: fixed; bottom: 20px; right: 20px;
     background: var(--text); color: var(--card);
-    padding: 10px 16px; border-radius: 8px;
+    padding: 10px 16px; border-radius: var(--radius);
     font-size: 13px;
     opacity: 0; transition: opacity .2s;
     z-index: 200;
@@ -754,7 +1171,7 @@ INDEX_HTML = r"""<!doctype html>
   .bell-badge {
     position: absolute; top: -4px; right: -4px;
     background: var(--err-fg); color: white;
-    font-size: 10px; padding: 1px 5px; border-radius: 8px;
+    font-size: 10px; padding: 1px 5px; border-radius: var(--radius);
     min-width: 14px; text-align: center; line-height: 1.4;
     font-weight: 600;
   }
@@ -763,8 +1180,8 @@ INDEX_HTML = r"""<!doctype html>
     position: absolute; top: 56px; right: 16px;
     width: 360px; max-height: 480px; overflow-y: auto;
     background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 12px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    border-radius: var(--radius-lg); padding: 12px;
+    box-shadow: var(--shadow-lg);
     z-index: 90; display: none;
     font-size: 13px;
   }
@@ -779,7 +1196,7 @@ INDEX_HTML = r"""<!doctype html>
   .bell-panel .bp-item .bp-meta { color: var(--muted); font-size: 11px; }
   .bell-panel .bp-empty { color: var(--muted); padding: 24px 8px; text-align: center; }
   .bell-panel .bp-grant {
-    margin-bottom: 10px; padding: 8px; border-radius: 8px;
+    margin-bottom: 10px; padding: 8px; border-radius: var(--radius);
     background: var(--bg); text-align: center;
   }
 
@@ -795,12 +1212,72 @@ INDEX_HTML = r"""<!doctype html>
     font-weight: 500;
   }
   .settings-tabs button.active { color: var(--focus); border-bottom-color: var(--focus); }
+
+  /* 主题中心 (Settings) */
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .theme-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    cursor: pointer;
+    transition: all .15s;
+    background: var(--card);
+    position: relative;
+    overflow: hidden;
+  }
+  .theme-card:hover { border-color: var(--border-strong); }
+  .theme-card.active {
+    border-color: var(--accent, #6366f1);
+    border-width: 2px;
+    padding: 13px;
+  }
+  .theme-card .tc-preview {
+    height: 60px; border-radius: 6px; margin-bottom: 8px;
+    position: relative; overflow: hidden;
+    background: var(--card-alt);
+  }
+  .theme-card .tc-preview-ring {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px; height: 36px;
+  }
+  .theme-card .tc-preview-ring svg { display: block; }
+  .theme-card .tc-name { font-weight: 600; font-size: 13px; }
+  .theme-card .tc-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .theme-card .tc-font { font-size: 10px; color: var(--muted); margin-top: 4px; opacity: 0.7; }
+  .theme-card.active::before {
+    content: "✓"; position: absolute; top: 6px; right: 8px;
+    color: var(--accent, #6366f1); font-weight: 700; font-size: 14px;
+  }
+  .accent-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .accent-swatch {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 2px solid var(--border); cursor: pointer;
+    position: relative; transition: transform .15s;
+  }
+  .accent-swatch:hover { transform: scale(1.08); }
+  .accent-swatch.active {
+    border-color: var(--accent, #6366f1);
+    box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--accent, #6366f1);
+  }
+  .accent-swatch .as-label {
+    position: absolute; bottom: -18px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px; color: var(--muted);
+    white-space: nowrap;
+  }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
   /* 通知规则卡片 */
   .alert-row {
-    border: 1px solid var(--border); border-radius: 10px;
+    border: 1px solid var(--border); border-radius: var(--radius);
     padding: 12px; margin-bottom: 10px; background: var(--card-alt);
     display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: start;
   }
@@ -809,7 +1286,7 @@ INDEX_HTML = r"""<!doctype html>
   .alert-row .ar-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 13px; }
   .alert-row .ar-line label { color: var(--muted); font-size: 12px; min-width: 56px; }
   .alert-row select, .alert-row input[type="number"], .alert-row input[type="text"] {
-    border: 1px solid var(--border); border-radius: 6px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 4px 8px; font-size: 13px; background: var(--card); color: var(--text);
     font-family: inherit;
   }
@@ -850,9 +1327,11 @@ INDEX_HTML = r"""<!doctype html>
     <button class="hdr-btn icon-only" onclick="toggleTheme()" id="theme-btn" title="切换主题"></button>
     <button class="hdr-btn icon-only" onclick="toggleBellPanel()" id="bell-btn" title="通知中心"><span class="bell-badge" id="bell-badge" style="display:none">0</span></button>
     <button class="hdr-btn icon-only" onclick="openSettings()" title="设置"></button>
+    <a id="preview-btn" class="hdr-btn icon-only" href="/preview" target="_blank" title="主题预览 (5 套设计稿)"></a>
     <button class="hdr-btn" id="refresh-btn" onclick="load()"></button>
   </div>
 </header>
+<div class="global-alert" id="global-alert" style="display:none"></div>
 <main id="main"></main>
 <footer>auto refresh every 60s · keys never leave the server</footer>
 
@@ -864,6 +1343,7 @@ INDEX_HTML = r"""<!doctype html>
 
     <div class="settings-tabs">
       <button class="active" id="tab-providers-btn" onclick="switchTab('providers')">Providers</button>
+      <button id="tab-theme-btn" onclick="switchTab('theme')"><span id="tab-theme-icon"></span> 主题</button>
       <button id="tab-alerts-btn" onclick="switchTab('alerts')"><span id="tab-alerts-icon"></span> 通知中心</button>
     </div>
 
@@ -904,6 +1384,20 @@ INDEX_HTML = r"""<!doctype html>
       </details>
     </div>
 
+    <div class="tab-panel" id="tab-theme">
+      <p style="color:var(--muted);font-size:12px;margin:0 0 16px">
+        选一个主题风格 + 强调色。主题和字体配方绑定; 强调色 (按钮/链接/环填充) 独立。
+        选完点 Save 即时生效。
+      </p>
+
+      <h3>主题风格</h3>
+      <div class="theme-grid" id="theme-grid"></div>
+
+      <h3 style="margin-top:20px">强调色</h3>
+      <p style="color:var(--muted);font-size:11px;margin:0 0 8px">影响按钮、链接、卡片高亮等可强调元素。状态色 (绿/黄/红) 保持不变。</p>
+      <div class="accent-row" id="accent-row"></div>
+    </div>
+
     <div class="tab-panel" id="tab-alerts">
       <p style="color:var(--muted);font-size:12px;margin:0 0 12px">
         阈值是<b>剩余 %</b>, 跟圆环方向一致。例: <code>剩 ≤ 20%</code> 表示剩余降到 20% 及以下时触发。
@@ -940,33 +1434,22 @@ function iconBtn(name, size = 16) {
   return `<span class="ic-wrap">${icon(name, size)}</span>`;
 }
 
-// ---------- 主题 (优先于其他脚本, 避免 FOUC) ----------
-(function initTheme() {
-  const saved = localStorage.getItem("vibeout-theme");
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = saved ? saved === "dark" : prefersDark;
-  if (dark) document.documentElement.classList.add("dark");
-  document.addEventListener("DOMContentLoaded", () => {
-    refreshHdrIcons(dark);
-  });
-})();
-function refreshHdrIcons(dark) {
+// ---------- 主题图标 (随 currentDark 变 sun/moon) ----------
+function refreshHdrIcons() {
   const themeBtn = document.getElementById("theme-btn");
-  if (themeBtn) themeBtn.innerHTML = icon(dark ? "sun" : "moon", 16);
+  if (themeBtn) themeBtn.innerHTML = icon(currentDark ? "sun" : "moon", 16);
   const bellBtn = document.getElementById("bell-btn");
   if (bellBtn) bellBtn.innerHTML = icon("bell", 16) + '<span class="bell-badge" id="bell-badge" style="display:none">0</span>';
   const setBtn = document.querySelector('button[onclick="openSettings()"]');
   if (setBtn) setBtn.innerHTML = icon("settings", 16);
   const refreshBtn = document.getElementById("refresh-btn");
   if (refreshBtn) refreshBtn.innerHTML = icon("refresh", 14) + ' Refresh';
+  const previewBtn = document.getElementById("preview-btn");
+  if (previewBtn) previewBtn.innerHTML = icon("eye", 16);
 }
 function toggleTheme() {
-  const html = document.documentElement;
-  const isDark = html.classList.toggle("dark");
-  localStorage.setItem("vibeout-theme", isDark ? "dark" : "light");
-  refreshHdrIcons(isDark);
-  // 已渲染的图表要重绘 (轴线颜色等)
-  if (typeof refreshCharts === "function") refreshCharts();
+  currentDark = !currentDark;
+  applyTheme();
 }
 
 const PROVIDER_ACCENT = {
@@ -1150,13 +1633,13 @@ function escapeHtml(s) {
 }
 
 function ringSvg(pct, color) {
-  const r = 42;
+  const r = 46;
   const C = 2 * Math.PI * r;
   const dash = (pct / 100) * C;
   return `
-    <svg class="ring-svg" width="100" height="100" viewBox="0 0 100 100">
-      <circle class="ring-track" cx="50" cy="50" r="${r}" stroke-width="8"></circle>
-      <circle class="ring-fill" cx="50" cy="50" r="${r}" stroke-width="8"
+    <svg class="ring-svg" width="110" height="110" viewBox="0 0 110 110">
+      <circle class="ring-track" cx="55" cy="55" r="${r}" stroke-width="7"></circle>
+      <circle class="ring-fill" cx="55" cy="55" r="${r}" stroke-width="7"
               stroke="${color}"
               stroke-dasharray="${C}"
               stroke-dashoffset="${C - dash}"></circle>
@@ -1168,15 +1651,15 @@ function ringBlock(r, accent) {
   // r.percent 是"已用%"; 这里翻转为"剩余%", 体现 "还能 vibe 多久"
   const used = Math.max(0, Math.min(100, r.percent));
   const remaining = 100 - used;
-  // 剩余越少越警告
-  const color = remaining < 20 ? "#ef4444" : remaining < 50 ? "#f59e0b" : accent;
+  // 剩余越少越警告 (统一状态色)
+  const color = remaining < 20 ? "var(--danger)" : remaining < 50 ? "var(--warning)" : accent;
   return `
     <div class="ring-block">
-      <div class="ring-wrapper" style="width:100px;height:100px;flex-shrink:0">
+      <div class="ring-wrapper" style="width:110px;height:110px;flex-shrink:0">
         ${ringSvg(remaining, color)}
         <div class="ring-text">
-          <span class="pct">剩 ${remaining}%</span>
-          <span class="label">可 vibe</span>
+          <span class="pct">${remaining}%</span>
+          <span class="label">剩</span>
         </div>
       </div>
       <div class="ring-meta">
@@ -1187,7 +1670,7 @@ function ringBlock(r, accent) {
   `;
 }
 
-function cardHtml(p) {
+function cardHtml(p, extraClass = "") {
   const accent = p.color || PROVIDER_ACCENT[p.id] || "#2B7FFF";
   let body;
   if (!p.ok) {
@@ -1229,20 +1712,11 @@ function cardHtml(p) {
                 </div>`).join("")}</div>
             </div>
           </details>` : "";
-      const chartTitles = rings.map(r => r.title);
-      const chartHtml = `<details class="more-folder" data-chart-pid="${escapeHtml(p.id)}" data-chart-titles="${escapeHtml(JSON.stringify(chartTitles))}" data-chart-accent="${escapeHtml(accent)}">
-            <summary>${icon("chart", 14)} 趋势</summary>
-            <div class="more-content">
-              <div class="chart-wrap" id="chart-${escapeHtml(p.id)}">
-                <div class="chart-wrap empty">展开后加载...</div>
-              </div>
-            </div>
-          </details>`;
-      body = ringHtml + extrasHtml + chartHtml;
+      body = ringHtml + extrasHtml;
     }
   }
   return `
-    <div class="card" style="--accent:${accent}">
+    <div class="card ${extraClass}" style="--accent:${accent}">
       <div class="card-header">
         <h2><span class="dot"></span>${escapeHtml(p.label)}</h2>
         ${renderStatus(p)}
@@ -1252,8 +1726,24 @@ function cardHtml(p) {
 }
 
 function renderStatus(p) {
+  let bellShortcut = "";
   if (p.ok) {
-    return `<span class="status"><span class="led"></span>通畅</span>`;
+    // 根据最危险环的剩余% 判定状态色
+    const sections = normalize(p, p.data);
+    let minRemaining = 100;
+    if (sections.length && sections[0].kind === "card") {
+      for (const r of (sections[0].rings || [])) {
+        const rem = 100 - (r.percent || 0);
+        if (rem < minRemaining) minRemaining = rem;
+      }
+    }
+    let cls = "";
+    let label = "通畅";
+    if (minRemaining < 20) { cls = "err"; label = "危险"; }
+    else if (minRemaining < 50) { cls = "warn"; label = "紧张"; }
+    // 铃铛快捷: 点击为该 provider 创建一个规则
+    bellShortcut = ` <button class="hdr-btn icon-only" style="padding:2px;min-width:auto;min-height:auto;color:var(--muted)" title="为这个 provider 创建告警规则" onclick="quickCreateAlert('${escapeHtml(p.id)}','${escapeHtml(p.label || p.id)}')">${icon("bell", 13)}</button>`;
+    return `<span class="status-wrap"><span class="status ${cls}"><span class="led"></span>${label}</span>${bellShortcut}</span>`;
   }
   if (p.error === "disabled") {
     return `<span class="status"><span class="led" style="background:var(--muted);box-shadow:none"></span>已禁用</span>`;
@@ -1261,6 +1751,89 @@ function renderStatus(p) {
   // 错误: 红灯 + 错误码
   const code = escapeHtml(String(p.error || "error"));
   return `<span class="status err"><span class="led"></span>${code}</span>`;
+}
+
+// 卡片上的快捷创建规则: 直接为某 provider 加一条规则
+function quickCreateAlert(pid, plabel) {
+  refreshAlertsConfig().then(() => {
+    const ring = prompt(`为 ${plabel} 创建告警规则\n\n维度 (留空=所有维度, 或填 5 小时/周/月):`, "5 小时");
+    if (ring === null) return;
+    const threshold = prompt("剩余 % ≤ 几时触发?", "20");
+    if (!threshold) return;
+    const id = "alert-" + Date.now();
+    alertsConfig.push({
+      id, enabled: true,
+      label: `${plabel} ${ring || "所有维度"}`,
+      provider_id: pid,
+      ring: ring || "*",
+      threshold: Number(threshold) || 20,
+      channels: ["browser", "log"],
+      cooldown_min: 30,
+      one_shot: false,
+    });
+    fetch("/api/alerts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alerts: alertsConfig }),
+    }).then(r => {
+      if (r.ok) { showToast("已创建告警规则"); refreshAlertsConfig(); }
+      else showToast("创建失败", "error");
+    });
+  });
+}
+
+// 算 provider 最危险环的剩余% (越高表示越安全)
+// 用于: 卡片排序 (升序, 危险在前) + 危险染色 + 全局告警条
+function minRemainingOf(p) {
+  if (!p.ok) return 100;  // 错误/禁用的排最后
+  const sections = normalize(p, p.data);
+  if (!sections.length || sections[0].kind !== "card") return 100;
+  let minR = 100;
+  for (const r of (sections[0].rings || [])) {
+    const rem = 100 - (r.percent || 0);
+    if (rem < minR) minR = rem;
+  }
+  return minR;
+}
+
+// 找出所有 provider 里最危险的那条 (provider + ring), 用于全局告警条
+function findTopAlert(providers) {
+  let top = null;
+  for (const p of providers) {
+    if (!p.ok) continue;
+    const sections = normalize(p, p.data);
+    if (!sections.length || sections[0].kind !== "card") continue;
+    for (const r of (sections[0].rings || [])) {
+      const rem = 100 - (r.percent || 0);
+      if (rem < 50 && (!top || rem < top.remaining)) {
+        top = { provider: p, ring: r, remaining: rem };
+      }
+    }
+  }
+  return top;
+}
+
+// 渲染顶栏下方的全局告警条 (剩余 <50% 才显示)
+function renderGlobalAlert(providers) {
+  const el = document.getElementById("global-alert");
+  if (!el) return;
+  const top = findTopAlert(providers);
+  if (!top) {
+    el.style.display = "none";
+    el.innerHTML = "";
+    return;
+  }
+  const cls = top.remaining < 20 ? "danger" : "warn";
+  const label = top.remaining < 20 ? "危险" : "紧张";
+  el.style.display = "block";
+  el.innerHTML = `
+    <div class="global-alert-inner ${cls}">
+      ${icon("bell", 16)}
+      <span><b>${escapeHtml(top.provider.label)}</b> · ${escapeHtml(top.ring.title)} ${label}</span>
+      ${top.ring.resetText ? `<span class="muted">${escapeHtml(top.ring.resetText)}</span>` : ""}
+      <span class="ga-pct">剩 ${top.remaining}%</span>
+    </div>
+  `;
 }
 
 async function load() {
@@ -1272,8 +1845,17 @@ async function load() {
     const res = await fetch("/api/quota");
     const data = await res.json();
     const main = document.getElementById("main");
-    const cards = data.providers.map(cardHtml).join("");
-    const hasAny = data.providers.some(p => p.ok || (p.error && p.error !== "disabled" && p.error !== "no key configured"));
+    // 按"危险度"升序排序 (剩余% 最少的在前), 但 disabled/error 的排最后
+    const sorted = [...data.providers].sort((a, b) => {
+      const ra = minRemainingOf(a), rb = minRemainingOf(b);
+      // disabled/no key 都视为 100 (排最后), 但 error 也要排最后
+      const aBack = (!a.ok && (a.error === "disabled" || a.error === "no key configured")) || (a.ok);
+      const bBack = (!b.ok && (b.error === "disabled" || b.error === "no key configured")) || (b.ok);
+      // 简化: ok 的按剩余升序, 不 ok 的统一排后
+      if (a.ok !== b.ok) return a.ok ? -1 : 1;
+      return ra - rb;
+    });
+    const hasAny = sorted.some(p => p.ok);
     if (!hasAny) {
       // 空配置 / 全 disabled / 全无 key: 显示引导
       main.innerHTML = `
@@ -1284,8 +1866,18 @@ async function load() {
           <button class="hdr-btn primary" style="font-size:14px;padding:10px 20px" onclick="openSettings()">${icon("settings", 14)} 打开 Settings</button>
         </div>`;
     } else {
-      main.innerHTML = cards;
+      const cardsHtml = sorted.map(p => {
+        const dangerCls = (p.ok && minRemainingOf(p) < 20) ? " danger" : "";
+        return cardHtml(p, dangerCls);
+      }).join("");
+      // 趋势卡片: 独立一张大卡, 横跨整行
+      const trendHtml = renderTrendCard(sorted);
+      main.innerHTML = cardsHtml + trendHtml;
+      // 趋势卡片初始化 (渲染选项 + 加载历史)
+      initTrendCard(sorted);
     }
+    // 全局告警条 (顶部): 最危险的那条
+    renderGlobalAlert(sorted);
     document.getElementById("updated").textContent =
       "updated " + new Date().toLocaleTimeString("zh-CN", {hour12: false});
     // 每次刷新都重新拉 alerts 规则 (别处可能改了)
@@ -1293,24 +1885,6 @@ async function load() {
     checkAndNotify(data.providers);
     // 每次刷新页面都让 history 重新拉一次 (不缓存)
     historyCache = null;
-    // 绑定趋势 details 的展开事件 (lazy 加载, 每次渲染都要重新绑)
-    document.querySelectorAll("details.more-folder[data-chart-pid]").forEach(d => {
-      d.addEventListener("toggle", () => {
-        if (d.open) {
-          const pid = d.dataset.chartPid;
-          const titles = JSON.parse(d.dataset.chartTitles || "[]");
-          const accent = d.dataset.chartAccent || "#2B7FFF";
-          loadChart(pid, titles, accent);
-        }
-      });
-      // 如果本来就是展开状态 (不太可能, 但保险), 直接加载
-      if (d.open) {
-        const pid = d.dataset.chartPid;
-        const titles = JSON.parse(d.dataset.chartTitles || "[]");
-        const accent = d.dataset.chartAccent || "#2B7FFF";
-        loadChart(pid, titles, accent);
-      }
-    });
   } catch (e) {
     document.getElementById("updated").textContent = "error: " + e.message;
   } finally {
@@ -1323,6 +1897,99 @@ async function load() {
 let config = { providers: [] };
 let templates = [];
 let savedSnapshot = "";  // 用来检测脏状态的 JSON 快照
+
+// ---------- 主题中心 ----------
+const THEMES = [
+  { id: "glass",    name: "Glass",    desc: "磨砂面板, 渐变光晕",      font: "Vibe",    recommended: true },
+  { id: "minimal",  name: "Minimal",  desc: "Linear 极简, 细线克制",     font: "Classic" },
+  { id: "data",     name: "Data",     desc: "Grafana 仪表盘, mono",     font: "Tech" },
+  { id: "brand",    name: "Brand",    desc: "Vercel 渐变, 立体色块",     font: "Vibe" },
+];
+const ACCENTS = [
+  { id: "aurora", name: "Aurora 极光",  primary: "#8b5cf6", secondary: "#34d399", text: "白" },
+  { id: "berry",  name: "Berry 紫粉",  primary: "#7c3aed", secondary: "#ec4899", text: "白" },
+  { id: "ocean",  name: "Ocean 靛青",  primary: "#6366f1", secondary: "#06b6d4", text: "白" },
+  { id: "sunset", name: "Sunset 暖阳",  primary: "#f59e0b", secondary: "#ec4899", text: "白" },
+];
+// 当前选择 (默认)
+const savedThemeName = localStorage.getItem("vibeout-theme-name");
+const savedAccent = localStorage.getItem("vibeout-accent");
+const savedDarkPref = localStorage.getItem("vibeout-theme-dark"); // "light" | "dark" | null (=auto)
+let currentTheme = savedThemeName || "glass";
+let currentAccent = savedAccent || "aurora";
+let currentDark;
+if (savedDarkPref === "dark") currentDark = true;
+else if (savedDarkPref === "light") currentDark = false;
+else currentDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+function applyTheme() {
+  const html = document.documentElement;
+  html.className = "";
+  html.classList.add(`theme-${currentTheme}`);
+  html.classList.add(`accent-${currentAccent}`);
+  if (currentDark) html.classList.add("dark");
+  localStorage.setItem("vibeout-theme-name", currentTheme);
+  localStorage.setItem("vibeout-accent", currentAccent);
+  localStorage.setItem("vibeout-theme-dark", currentDark ? "dark" : "light");
+  refreshHdrIcons(currentDark);
+  refreshCharts();
+}
+
+function renderThemeCenter() {
+  const grid = document.getElementById("theme-grid");
+  if (grid) {
+    grid.innerHTML = THEMES.map(t => `
+      <div class="theme-card ${t.id === currentTheme ? "active" : ""}" data-tid="${t.id}" onclick="selectTheme('${t.id}')">
+        <div class="tc-preview" id="tc-preview-${t.id}"></div>
+        <div class="tc-name">${escapeHtml(t.name)}</div>
+        <div class="tc-desc">${escapeHtml(t.desc)}</div>
+        <div class="tc-font">font: ${t.font}</div>
+      </div>
+    `).join("");
+    // 渲染每张卡的迷你预览 (一个圆环 + 一条线)
+    THEMES.forEach(t => {
+      const c = document.getElementById(`tc-preview-${t.id}`);
+      if (!c) return;
+      c.innerHTML = `
+        <svg viewBox="0 0 60 60" style="width:36px;height:36px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">
+          <circle cx="30" cy="30" r="22" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="4"/>
+          <circle cx="30" cy="30" r="22" fill="none" stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="20" stroke-linecap="round" transform="rotate(-90 30 30)"/>
+        </svg>
+      `;
+    });
+  }
+  const row = document.getElementById("accent-row");
+  if (row) {
+    row.innerHTML = ACCENTS.map(a => `
+      <div style="position:relative">
+        <div class="accent-swatch ${a.id === currentAccent ? "active" : ""}" data-aid="${a.id}"
+             style="background:linear-gradient(135deg,${a.primary},${a.secondary})"
+             onclick="selectAccent('${a.id}')" title="${escapeHtml(a.name)}"></div>
+        <span class="as-label">${escapeHtml(a.name)}</span>
+      </div>
+    `).join("");
+  }
+}
+
+function selectTheme(id) {
+  currentTheme = id;
+  applyTheme();
+  // 重渲染卡片 (active 态)
+  document.querySelectorAll(".theme-card").forEach(c => c.classList.toggle("active", c.dataset.tid === id));
+  // 自动跟主题配的字体在 CSS 里处理
+}
+function selectAccent(id) {
+  currentAccent = id;
+  applyTheme();
+  document.querySelectorAll(".accent-swatch").forEach(s => s.classList.toggle("active", s.dataset.aid === id));
+}
+function selectDarkMode(dark) {
+  currentDark = dark;
+  applyTheme();
+}
+
+// 初始化 (页面加载时立即应用)
+applyTheme();
 
 // ---------- 趋势图 ----------
 let historyCache = null;
@@ -1340,51 +2007,163 @@ async function fetchHistory() {
   }
 }
 
-async function loadChart(pid, ringTitles, accent) {
-  const container = document.getElementById("chart-" + pid);
-  if (!container) return;
-  const history = await fetchHistory();
-  // 过滤出该 provider 的记录
-  const points = [];
-  for (const rec of history) {
-    const p = (rec.providers || []).find(x => x.id === pid);
-    if (!p || !p.rings || !p.rings.length) continue;
-    const ringByName = {};
-    for (const r of p.rings) ringByName[r.title] = r.percent;
-    points.push({ ts: rec.ts, rings: ringByName });
+// ---------- 趋势组件卡片 (provider × 维度 全多选) ----------
+let trendChartInstance = null;
+let trendSelected = { providers: new Set(), rings: new Set() };
+const RING_COLOR_PALETTE = ["#2B7FFF", "#7C3AED", "#1F1F1F", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899"];
+
+function renderTrendCard(providers) {
+  return `
+    <div class="card trend-card">
+      <div class="tc-header">
+        <span class="tc-title">${icon("chart", 16)} 趋势</span>
+        <div class="tc-chips">
+          <div class="tc-group">
+            <span class="tc-group-label">provider</span>
+            <div id="trend-providers-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+          </div>
+          <div class="tc-group">
+            <span class="tc-group-label">维度</span>
+            <div id="trend-rings-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tc-canvas-wrap" id="trend-canvas-wrap">
+        <div class="tc-empty">${icon("chart", 32)}<div>选择左侧 provider + 维度, 开始对比</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function initTrendCard(providers) {
+  const okProviders = providers.filter(p => p.ok);
+  // 默认选中第一个 provider + 它的所有维度
+  if (okProviders.length && !trendSelected.providers.size) {
+    trendSelected.providers.add(okProviders[0].id);
+    const rings = new Set();
+    for (const p of okProviders) {
+      const sections = normalize(p, p.data);
+      if (sections.length && sections[0].kind === "card") {
+        for (const r of (sections[0].rings || [])) rings.add(r.title);
+      }
+    }
+    trendSelected.rings = rings;
   }
-  // 只画 history 里至少有 1 个数据点的 title (避免画一条全空的线)
-  const availableTitles = [];
-  for (const title of ringTitles) {
-    const hasData = points.some(pt => pt.rings[title] != null);
-    if (hasData) availableTitles.push(title);
+
+  // provider chips
+  const pChips = document.getElementById("trend-providers-chips");
+  if (pChips) {
+    pChips.innerHTML = okProviders.map(p => {
+      const active = trendSelected.providers.has(p.id);
+      const color = p.color || PROVIDER_ACCENT[p.id] || "#2B7FFF";
+      return `<span class="chip ${active ? "active" : ""}" data-pid="${escapeHtml(p.id)}"
+                   style="${active ? `background:${color};border-color:${color}` : `color:${color}`}"
+                   onclick="toggleTrendProvider('${escapeHtml(p.id)}')">
+                   <span class="swatch"></span>${escapeHtml(p.label || p.id)}
+              </span>`;
+    }).join("");
   }
-  if (!availableTitles.length || !points.length) {
-    container.innerHTML = '<div class="chart-wrap empty">暂无历史数据, 等几分钟积累</div>';
+
+  // ring chips (合并所有 provider 出现过的维度)
+  const allRings = new Set();
+  for (const p of okProviders) {
+    const sections = normalize(p, p.data);
+    if (sections.length && sections[0].kind === "card") {
+      for (const r of (sections[0].rings || [])) allRings.add(r.title);
+    }
+  }
+  const rChips = document.getElementById("trend-rings-chips");
+  if (rChips) {
+    rChips.innerHTML = [...allRings].map(title => {
+      const active = trendSelected.rings.has(title);
+      return `<span class="chip ${active ? "active" : ""}" data-ring="${escapeHtml(title)}"
+                   onclick="toggleTrendRing('${escapeHtml(title)}')">${escapeHtml(title)}</span>`;
+    }).join("");
+  }
+  renderTrendChart(okProviders);
+}
+
+function toggleTrendProvider(pid) {
+  if (trendSelected.providers.has(pid)) trendSelected.providers.delete(pid);
+  else trendSelected.providers.add(pid);
+  // 重渲染 chips (更新 active 态)
+  const providers = currentProviders.filter(p => p.ok);
+  initTrendCardChipStates(providers);
+  renderTrendChart(providers);
+}
+function toggleTrendRing(title) {
+  if (trendSelected.rings.has(title)) trendSelected.rings.delete(title);
+  else trendSelected.rings.add(title);
+  const providers = currentProviders.filter(p => p.ok);
+  initTrendCardChipStates(providers);
+  renderTrendChart(providers);
+}
+// 只更新 chips 的 active 样式, 不重建 DOM (避免闪烁)
+function initTrendCardChipStates(providers) {
+  document.querySelectorAll("#trend-providers-chips .chip").forEach(el => {
+    const pid = el.dataset.pid;
+    const active = trendSelected.providers.has(pid);
+    el.classList.toggle("active", active);
+    const p = providers.find(x => x.id === pid);
+    const color = (p && (p.color || PROVIDER_ACCENT[pid])) || "#2B7FFF";
+    el.style.background = active ? color : "";
+    el.style.borderColor = active ? color : "";
+    el.style.color = active ? "white" : color;
+  });
+  document.querySelectorAll("#trend-rings-chips .chip").forEach(el => {
+    const ring = el.dataset.ring;
+    el.classList.toggle("active", trendSelected.rings.has(ring));
+  });
+}
+
+let currentProviders = [];
+async function renderTrendChart(providers) {
+  currentProviders = providers;
+  const combos = [];
+  for (const pid of trendSelected.providers) {
+    const p = providers.find(x => x.id === pid);
+    if (!p) continue;
+    const accent = p.color || PROVIDER_ACCENT[pid] || "#2B7FFF";
+    for (const ring of trendSelected.rings) {
+      combos.push({ pid, label: p.label || pid, ring, accent });
+    }
+  }
+  const wrap = document.getElementById("trend-canvas-wrap");
+  if (!combos.length) {
+    if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+    wrap.innerHTML = `<div class="tc-empty">${icon("chart", 32)}<div>选择左侧 provider + 维度, 开始对比</div></div>`;
     return;
   }
-  // 渲染 canvas
-  container.classList.remove("empty");
-  container.innerHTML = '<canvas></canvas>';
-  const ctx = container.querySelector("canvas").getContext("2d");
-
-  const labels = points.map(pt => {
-    const d = new Date(pt.ts);
-    return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
-  });
+  const history = await fetchHistory();
+  if (!history.length) {
+    if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+    wrap.innerHTML = `<div class="tc-empty">${icon("clock", 32)}<div>暂无历史数据, 等几分钟积累</div></div>`;
+    return;
+  }
+  // 收集所有时间点
+  const labels = [];
+  const seriesByCombo = {};  // `${pid}|${ring}` -> [percent or null]
+  for (const rec of history) {
+    const d = new Date(rec.ts);
+    labels.push(d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }));
+    for (const combo of combos) {
+      const key = `${combo.pid}|${combo.ring}`;
+      if (!seriesByCombo[key]) seriesByCombo[key] = { ...combo, data: [] };
+      const p = (rec.providers || []).find(x => x.id === combo.pid);
+      const r = p && (p.rings || []).find(x => x.title === combo.ring);
+      seriesByCombo[key].data.push(r ? r.percent : null);
+    }
+  }
   const isDark = document.documentElement.classList.contains("dark");
-  const gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const tickColor = isDark ? "#8b95a5" : "#6b7280";
-
-  const datasets = availableTitles.map((title, idx) => {
-    // 给每条线一点色相偏移
-    const colors = [accent, "#f59e0b", "#10b981", "#ef4444"];
-    const c = colors[idx % colors.length];
+  const gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)";
+  const tickColor = isDark ? "#8b95a8" : "#64748b";
+  const datasets = Object.values(seriesByCombo).map((s, idx) => {
+    const c = s.accent;
     return {
-      label: title,
-      data: points.map(pt => pt.rings[title] ?? null),
+      label: `${s.label} · ${s.ring}`,
+      data: s.data,
       borderColor: c,
-      backgroundColor: c + "22",
+      backgroundColor: c + "20",
       tension: 0.3,
       pointRadius: 1.5,
       pointHoverRadius: 4,
@@ -1392,9 +2171,13 @@ async function loadChart(pid, ringTitles, accent) {
     };
   });
 
-  // 销毁老实例
-  if (chartInstances[pid]) chartInstances[pid].destroy();
-  chartInstances[pid] = new Chart(ctx, {
+  // 确保 canvas 存在
+  if (!wrap.querySelector("canvas")) {
+    wrap.innerHTML = '<canvas></canvas>';
+  }
+  const ctx = wrap.querySelector("canvas").getContext("2d");
+  if (trendChartInstance) trendChartInstance.destroy();
+  trendChartInstance = new Chart(ctx, {
     type: "line",
     data: { labels, datasets },
     options: {
@@ -1402,11 +2185,14 @@ async function loadChart(pid, ringTitles, accent) {
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { labels: { color: tickColor, boxWidth: 10, font: { size: 10 } } },
+        legend: {
+          labels: { color: tickColor, boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 12 },
+          position: "bottom",
+        },
         tooltip: { intersect: false },
       },
       scales: {
-        x: { ticks: { color: tickColor, maxTicksLimit: 6, font: { size: 10 } }, grid: { color: gridColor } },
+        x: { ticks: { color: tickColor, maxTicksLimit: 8, font: { size: 10 } }, grid: { color: gridColor } },
         y: { min: 0, max: 100, ticks: { color: tickColor, font: { size: 10 }, callback: v => v + "%" }, grid: { color: gridColor } },
       },
     },
@@ -1414,14 +2200,8 @@ async function loadChart(pid, ringTitles, accent) {
 }
 
 function refreshCharts() {
-  // 主题切换后, 把已渲染的图表重绘 (颜色变化)
-  for (const pid in chartInstances) {
-    const details = document.querySelector(`details.more-folder[data-chart-pid="${pid}"]`);
-    if (!details || !details.open) continue;
-    const titles = JSON.parse(details.dataset.chartTitles || "[]");
-    const accent = details.dataset.chartAccent || "#2B7FFF";
-    loadChart(pid, titles, accent);
-  }
+  // 主题切换后, 重绘趋势卡片
+  if (currentProviders.length) renderTrendChart(currentProviders);
 }
 
 async function openSettings() {
@@ -1432,11 +2212,14 @@ async function openSettings() {
   renderTemplateGrid();
   renderProviderList();
   renderAlertList();
+  renderThemeCenter();
   // 填静态按钮的图标
   const addBtn = document.getElementById("alert-add-btn");
   if (addBtn) addBtn.innerHTML = icon("plus", 14) + " 新建规则";
   const tabAlertsIcon = document.getElementById("tab-alerts-icon");
   if (tabAlertsIcon) tabAlertsIcon.innerHTML = icon("bell", 14);
+  const tabThemeIcon = document.getElementById("tab-theme-icon");
+  if (tabThemeIcon) tabThemeIcon.innerHTML = icon("settings", 14);
 }
 
 function switchTab(name) {
@@ -2032,6 +2815,21 @@ class Handler(BaseHTTPRequestHandler):
         return self.rfile.read(length) if length else b""
 
     def do_GET(self):
+        if self.path == "/preview" or self.path.startswith("/preview?"):
+            # 主题预览页面 (5 个并排风格对比)
+            try:
+                preview_path = Path(__file__).parent / "theme-preview" / "index.html"
+                body = preview_path.read_bytes()
+            except FileNotFoundError:
+                self._send_text(404, "preview not found", ctype="text/plain; charset=utf-8")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         if self.path == "/" or self.path.startswith("/?"):
             body = INDEX_HTML.encode("utf-8")
             self.send_response(200)
