@@ -969,6 +969,18 @@ INDEX_HTML = r"""<!doctype html>
   .summary-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
   .summary-stat-pct { font-size: 22px; font-weight: 700; font-family: var(--font-mono); letter-spacing: -0.02em; }
   .summary-stat-detail { font-size: 13px; color: var(--text); }
+  .summary-stat-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .summary-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px; border: 1px solid var(--border);
+    border-radius: 999px; font-size: 12px; color: var(--text);
+  }
+  .summary-pill .summary-pill-color {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .summary-pill.danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger); }
+  .summary-pill.warn { background: var(--warning-bg); border-color: color-mix(in srgb, var(--warning) 40%, transparent); color: var(--warning); }
+  .summary-pill.ok { background: var(--success-bg); border-color: color-mix(in srgb, var(--success) 40%, transparent); color: var(--success); }
 
   .trend-card {
     grid-column: 1 / -1;
@@ -2189,10 +2201,9 @@ function renderSummaryWidget(providers) {
   `;
 }
 
-// 给指定 ring 标题画一排: 按剩余% 分三档 (不足/还行/充足), 列出 provider 名
+// 给指定 ring 标题画一排: 逐家预览 5h/周 剩余%, 用 widget 颜色染色
 function ringTier(enabledOk, ringTitle) {
-  // 收集各 provider 该 ring 的剩余%
-  const buckets = { danger: [], warn: [], ok: [] };
+  const rows = [];
   for (const p of enabledOk) {
     const s = normalize(p, p.data);
     if (!s.length || s[0].kind !== "card") continue;
@@ -2200,19 +2211,22 @@ function ringTier(enabledOk, ringTitle) {
     if (!r) continue;
     const rem = 100 - (r.percent || 0);
     const name = escapeHtml(p.label || p.id);
-    if (rem < 20) buckets.danger.push({ name, pct: rem });
-    else if (rem < 50) buckets.warn.push({ name, pct: rem });
-    else buckets.ok.push({ name, pct: rem });
+    // 颜色: widget.color > provider.color > PROVIDER_ACCENT > 默认
+    const w = config.widgets.find(x => x.type === "provider" && x.provider_id === p.id);
+    const color = (w && w.color) || p.color || PROVIDER_ACCENT[p.id] || "#2B7FFF";
+    const colorCls = rem < 20 ? "danger" : rem < 50 ? "warn" : "ok";
+    rows.push({ name, pct: rem, color, colorCls });
   }
-  const total = buckets.danger.length + buckets.warn.length + buckets.ok.length;
-  if (!total) return "";
-  const line = [];
-  if (buckets.danger.length) line.push(`<span style="color:var(--danger)">不足 ${buckets.danger.map(b => `${b.name} ${b.pct}%`).join(", ")}</span>`);
-  if (buckets.warn.length) line.push(`<span style="color:var(--warning)">还行 ${buckets.warn.map(b => `${b.name} ${b.pct}%`).join(", ")}</span>`);
-  if (buckets.ok.length) line.push(`<span style="color:var(--success)">充足 ${buckets.ok.map(b => `${b.name} ${b.pct}%`).join(", ")}</span>`);
+  if (!rows.length) return "";
+  // 按 pct 升序, 最缺的在前
+  rows.sort((a, b) => a.pct - b.pct);
+  const chips = rows.map(r => `<span class="summary-pill ${r.colorCls}" style="border-color:${r.color}">
+    <span class="summary-pill-color" style="background:${r.color}"></span>
+    ${r.name} <b>${r.pct}%</b>
+  </span>`).join("");
   return `<div class="summary-stat">
     <span class="summary-stat-label">${escapeHtml(ringTitle)}</span>
-    <span class="summary-stat-detail">${line.join(" · ")}</span>
+    <span class="summary-stat-pills">${chips}</span>
   </div>`;
 }
 
