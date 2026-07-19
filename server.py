@@ -2001,6 +2001,18 @@ async function load() {
     if (!config.trend_mode) config.trend_mode = "chart";
     if (!config.trend_default_ring) config.trend_default_ring = "*";
     if (!config.trend_default_providers) config.trend_default_providers = "all";
+    // 老 config 可能没 widgets, 按 enabled providers 生成默认数组
+    if (!Array.isArray(config.widgets) || !config.widgets.length) {
+      config.widgets = [
+        { id: "summary", type: "summary", enabled: true },
+      ];
+      for (const p of (config.providers || [])) {
+        if (p.enabled) {
+          config.widgets.push({ id: `provider:${p.id}`, type: "provider", provider_id: p.id, enabled: true });
+        }
+      }
+      config.widgets.push({ id: "trend", type: "trend", enabled: true });
+    }
     const data = await quotaRes.json();
     const main = document.getElementById("main");
     currentProviders = data.providers;
