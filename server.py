@@ -1826,8 +1826,8 @@ function cardHtml(p, extraClass = "") {
 }
 
 function renderStatus(p) {
+  // 状态: 绿点 = 通畅, 黄点 = 紧张, 红点 = 危险, 灰点 = 断连 (p.ok === false 且非 disabled)
   if (p.ok) {
-    // 根据最危险环的剩余% 判定状态色
     const sections = normalize(p, p.data);
     let minRemaining = 100;
     if (sections.length && sections[0].kind === "card") {
@@ -1836,18 +1836,17 @@ function renderStatus(p) {
         if (rem < minRemaining) minRemaining = rem;
       }
     }
-    let cls = "";
-    let label = "通畅";
-    if (minRemaining < 20) { cls = "err"; label = "危险"; }
-    else if (minRemaining < 50) { cls = "warn"; label = "紧张"; }
-    return `<span class="status ${cls}"><span class="led"></span>${label}</span>`;
+    let cls = ""; // 默认绿
+    if (minRemaining < 20) cls = "err";
+    else if (minRemaining < 50) cls = "warn";
+    return `<span class="status ${cls}" title="剩 ${minRemaining}%"><span class="led"></span></span>`;
   }
   if (p.error === "disabled") {
-    return `<span class="status"><span class="led" style="background:var(--muted);box-shadow:none"></span>已禁用</span>`;
+    return `<span class="status" title="已禁用"><span class="led" style="background:var(--muted);box-shadow:none"></span></span>`;
   }
-  // 错误: 红灯 + 错误码
+  // 错误 (断连): 灰点 + 错误信息在 title
   const code = escapeHtml(String(p.error || "error"));
-  return `<span class="status err"><span class="led"></span>${code}</span>`;
+  return `<span class="status err" title="${code}"><span class="led"></span></span>`;
 }
 
 // 卡片上的快捷创建规则: 直接为某 provider 加一条规则
@@ -1958,6 +1957,8 @@ async function load() {
     // 每次刷新都重新拉 alerts 规则 (别处可能改了)
     await refreshAlertsConfig();
     checkAndNotify(data.providers);
+    // 断连自动写进 alerts.jsonl (供通知中心查看)
+    recordSyncFailures(data.providers);
     // 每次刷新页面都让 history 重新拉一次 (不缓存)
     historyCache = null;
   } catch (e) {
@@ -2829,6 +2830,51 @@ async function checkAndNotify(providers) {
     updateBellBadge();
     showToast(`🔔 ${fired.length} 条告警触发`);
     if (bellPanelOpen) renderBellList();
+  }
+}
+
+// 同步失败自动记录: 任何 provider 拉取失败 (p.ok === false 且非 disabled/no key),
+// 写一条 logs/alerts.jsonl 记录, 供通知中心查看
+let lastSyncFailure = {};  // provider_id -> { ts, error } 避免每分钟都写
+async function recordSyncFailures(providers) {
+  for (const p of providers) {
+    if (p.ok) {
+      // 上次失败这次恢复了, 记一条 "recovered"
+      if (lastSyncFailure[p.id]) {
+        try {
+          await fetch("/api/alerts/log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              alert_id: "sync", provider_id: p.id, provider_label: p.label,
+              ring: "_recovered", remaining_pct: 100, channels: ["sync"],
+            }),
+          });
+        } catch (e) {}
+        delete lastSyncFailure[p.id];
+      }
+      continue;
+    }
+    if (p.error === "disabled" || p.error === "no key configured") continue;
+    // 冷却 5 分钟: 同一 provider 错误 5 分钟内只记一次
+    const now = Date.now();
+    if (lastSyncFailure[p.id] && now - lastSyncFailure[p.id].ts < 5 * 60 * 1000) continue;
+    lastSyncFailure[p.id] = { ts: now, error: p.error };
+    try {
+      await fetch("/api/alerts/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alert_id: "sync",
+          provider_id: p.id,
+          provider_label: p.label || p.id,
+          ring: "_sync_failure",
+          remaining_pct: 0,
+          channels: ["sync"],
+        }),
+      });
+      if (bellPanelOpen) renderBellList();
+    } catch (e) {}
   }
 }
 
