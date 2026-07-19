@@ -2025,8 +2025,8 @@ async function load() {
     // 每次刷新都重新拉 alerts 规则 (别处可能改了)
     await refreshAlertsConfig();
     checkAndNotify(data.providers);
-    // 断连自动写进 alerts.jsonl (供通知中心查看)
-    recordSyncFailures(data.providers);
+    // 断连不写历史 (避免假阳性刷屏, 用户直接看卡片 LED 即可)
+    // recordSyncFailures(data.providers);
     // 每次刷新页面都让 history 重新拉一次 (不缓存)
     historyCache = null;
   } catch (e) {
