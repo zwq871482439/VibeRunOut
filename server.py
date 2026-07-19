@@ -1614,9 +1614,16 @@ function normalizeZai(raw) {
 
 function normalizeKimi(raw) {
   const payload = raw?.data ?? raw;
-  function fmtReset(iso) {
+  function fmtReset(iso, title) {
     if (!iso) return "";
-    return fmtRelative(new Date(iso).getTime() - Date.now());
+    const diff = new Date(iso).getTime() - Date.now();
+    if (diff <= 0) return "已重置";
+    // 月配额: 显示具体日期 (用户更关心 "什么时候重置", 不是 "还剩多久")
+    if (title === "月") {
+      const d = new Date(iso);
+      return `${d.getMonth() + 1}月${d.getDate()}日重置`;
+    }
+    return fmtRelative(diff);
   }
   const rings = [];
   if (Array.isArray(payload.limits) && payload.limits.length) {
@@ -1629,14 +1636,14 @@ function normalizeKimi(raw) {
         let title = "用量";
         if (w.duration === 300) title = "5 小时";
         else if (w.duration) title = `${Math.round(w.duration / 60)}h`;
-        rings.push({ title, percent: pct, resetText: fmtReset(d.resetTime) });
+        rings.push({ title, percent: pct, resetText: fmtReset(d.resetTime, title) });
       }
     }
   if (payload.usage && payload.usage.limit) {
     const limit = Number(payload.usage.limit);
     const used = Number(payload.usage.used || 0);
     const pct = limit > 0 ? Math.round(used / limit * 100) : 0;
-    rings.push({ title: "月", percent: pct, resetText: fmtReset(payload.usage.resetTime) });
+    rings.push({ title: "月", percent: pct, resetText: fmtReset(payload.usage.resetTime, "月") });
   }
   const extras = [];
   if (payload.parallel?.limit) extras.push({ name: "并发限制", value: payload.parallel.limit });
@@ -1732,7 +1739,7 @@ function ringBlock(r, accent, display) {
     return `
       <div class="ring-block ring-block-text">
         <div class="text-meta">
-          <div class="text-pct" style="color:${color}">剩 ${remaining}%</div>
+          <div class="text-pct" style="color:${color}">${remaining}%</div>
           <div class="text-title">${escapeHtml(r.title)}</div>
           ${r.resetText ? `<div class="text-reset">${icon("clock", 11)} ${escapeHtml(r.resetText)}</div>` : ""}
         </div>
@@ -1762,7 +1769,6 @@ function ringBlock(r, accent, display) {
         ${ringSvg(remaining, color)}
         <div class="ring-text">
           <span class="pct">${remaining}%</span>
-          <span class="label">剩</span>
         </div>
       </div>
       <div class="ring-meta">
@@ -1902,7 +1908,7 @@ function renderGlobalAlert(providers) {
       ${icon("bell", 16)}
       <span><b>${escapeHtml(top.provider.label)}</b> · ${escapeHtml(top.ring.title)} ${label}</span>
       ${top.ring.resetText ? `<span class="muted">${escapeHtml(top.ring.resetText)}</span>` : ""}
-      <span class="ga-pct">剩 ${top.remaining}%</span>
+      <span class="ga-pct">${top.remaining}%</span>
     </div>
   `;
 }
