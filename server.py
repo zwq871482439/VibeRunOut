@@ -1991,8 +1991,21 @@ async function load() {
   btn.disabled = true;
   btn.innerHTML = '<span class="pc-loading"></span>Loading';
   try {
-    const res = await fetch("/api/quota");
-    const data = await res.json();
+    // 并行拉 config (含最新 widgets/sort/ring/trend) + quota
+    const [cfgRes, quotaRes] = await Promise.all([
+      fetch("/api/config"),
+      fetch("/api/quota"),
+    ]);
+    const cfg = await cfgRes.json();
+    // 同步本地 config (保留 alertsConfig 不被覆盖, 那个由 refreshAlertsConfig 管)
+    const oldAlerts = alertsConfig;
+    config = cfg;
+    if (oldAlerts && oldAlerts.length) alertsConfig = oldAlerts;
+    if (!config.ring_display) config.ring_display = "ring";
+    if (!config.trend_mode) config.trend_mode = "chart";
+    if (!config.trend_default_ring) config.trend_default_ring = "*";
+    if (!config.trend_default_providers) config.trend_default_providers = "all";
+    const data = await quotaRes.json();
     const main = document.getElementById("main");
     currentProviders = data.providers;
 
