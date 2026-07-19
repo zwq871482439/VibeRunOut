@@ -1566,10 +1566,6 @@ INDEX_HTML = r"""<!doctype html>
 function icon(name, size = 16) {
   return `<svg class="ic" width="${size}" height="${size}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
 }
-function iconBtn(name, size = 16) {
-  // icon 外面包一个 .ic-wrap 让 svg 垂直居中
-  return `<span class="ic-wrap">${icon(name, size)}</span>`;
-}
 
 // ---------- 主题图标 (随 currentDark 变 sun/moon) ----------
 function refreshHdrIcons() {
@@ -2162,17 +2158,12 @@ function selectAccent(id) {
   applyTheme();
   document.querySelectorAll(".accent-swatch").forEach(s => s.classList.toggle("active", s.dataset.aid === id));
 }
-function selectDarkMode(dark) {
-  currentDark = dark;
-  applyTheme();
-}
 
 // 初始化 (页面加载时立即应用)
 applyTheme();
 
 // ---------- 趋势图 ----------
 let historyCache = null;
-const chartInstances = {};  // pid -> Chart 实例
 
 async function fetchHistory() {
   if (historyCache) return historyCache;
@@ -2189,7 +2180,6 @@ async function fetchHistory() {
 // ---------- 趋势组件卡片 (provider × 维度 全多选) ----------
 let trendChartInstance = null;
 let trendSelected = { providers: new Set(), rings: new Set() };
-const RING_COLOR_PALETTE = ["#2B7FFF", "#7C3AED", "#1F1F1F", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899"];
 
 // 摘要 widget: 顶部整体状态
 function renderSummaryWidget(providers) {
@@ -2582,35 +2572,6 @@ function switchTab(name) {
 }
 
 // ---------- 显示选项 (sort_mode + ring_display) ----------
-function updateDisplayPref(key, value) {
-  config[key] = value;
-  // 改了 trend 默认维度/provider, 重置已选 (让新默认值立即生效)
-  if (key === "trend_default_ring" || key === "trend_default_providers") {
-    trendSelected = { providers: new Set(), rings: new Set() };
-  }
-  // 即时生效: 重渲染卡片
-  if (currentProviders.length) {
-    const html = [];
-    const trendProviders = [];
-    for (const w of config.widgets) {
-      if (!w.enabled) continue;
-      if (w.type === "summary") {
-        html.push(renderSummaryWidget(currentProviders));
-      } else if (w.type === "provider") {
-        const p = currentProviders.find(x => x.id === w.provider_id);
-        if (!p) continue;
-        const dangerCls = (p.ok && minRemainingOf(p) < 20) ? " danger" : "";
-        html.push(cardHtml(p, dangerCls));
-        trendProviders.push(p);
-      }
-    }
-    document.getElementById("main").innerHTML = html.join("");
-    const trendEl = renderTrendCard(currentProviders);
-    if (trendEl) document.getElementById("main").insertAdjacentHTML("beforeend", trendEl);
-    initTrendCard(currentProviders);
-  }
-}
-
 function syncDisplaySelects() {
   // ring_display / trend_mode / trend_default_* 现在跟 widget 行走, 这里留个空
 }
