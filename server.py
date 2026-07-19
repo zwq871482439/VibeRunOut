@@ -2435,31 +2435,55 @@ async function renderTrendChart(providers) {
   const chart = Chart;
   const datasets = sortedCombos.map((s, idx) => {
     const c = s.accent;
-    const safeColor = c;
     return {
       label: `${s.label} · ${s.ring}`,
       data: seriesByCombo[`${s.pid}|${s.ring}`].data,
-      borderColor: safeColor,
-      backgroundColor: (ctx) => {
-        // 渐变填充: 顶部 30% 透明, 底部 0% 透明
-        const c2 = ctx.chart;
-        if (!c2) return safeColor + "20";
-        const g = c2.ctx.createLinearGradient(0, 0, 0, c2.height || 280);
-        g.addColorStop(0, safeColor + "40");
-        g.addColorStop(1, safeColor + "00");
-        return g;
-      },
+      borderColor: c,
+      backgroundColor: c + "1f",  // 12% 透明, 简单 hex alpha
       fill: "origin",
       tension: 0.4,
       borderWidth: 2.5,
       pointRadius: 3,
       pointHoverRadius: 6,
-      pointBackgroundColor: safeColor,
+      pointBackgroundColor: c,
       pointBorderColor: isDark ? "#0f1115" : "#ffffff",
       pointBorderWidth: 1.5,
       spanGaps: true,
     };
   });
+
+  // 自定义 plugin: 阈值参考线 (20% 危险 + 50% 紧张)
+  const thresholdPlugin = {
+    id: "thresholdLines",
+    afterDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      const yScale = scales.y;
+      if (!yScale || !chartArea) return;
+      ctx.save();
+      // 20% 危险线
+      const y20 = yScale.getPixelForValue(20);
+      ctx.strokeStyle = dangerLine;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(chartArea.left, y20);
+      ctx.lineTo(chartArea.right, y20);
+      ctx.stroke();
+      ctx.fillStyle = dangerLine;
+      ctx.font = "10px Geist Mono, monospace";
+      ctx.fillText("20% 危险", chartArea.right - 50, y20 - 4);
+      // 50% 紧张线
+      const y50 = yScale.getPixelForValue(50);
+      ctx.strokeStyle = warnLine;
+      ctx.beginPath();
+      ctx.moveTo(chartArea.left, y50);
+      ctx.lineTo(chartArea.right, y50);
+      ctx.stroke();
+      ctx.fillStyle = warnLine;
+      ctx.fillText("50% 紧张", chartArea.right - 50, y50 - 4);
+      ctx.restore();
+    },
+  };
 
   // 确保 canvas 存在
   if (!wrap.querySelector("canvas")) {
@@ -2467,7 +2491,7 @@ async function renderTrendChart(providers) {
   }
   const ctx = wrap.querySelector("canvas").getContext("2d");
   if (trendChartInstance) trendChartInstance.destroy();
-  trendChartInstance = new chart(ctx, {
+  trendChartInstance = new Chart(ctx, {
     type: "line",
     data: { labels, datasets },
     options: {
@@ -2516,45 +2540,10 @@ async function renderTrendChart(providers) {
           },
           grid: { color: gridColor, tickColor: gridColor },
           border: { display: false },
-          // 参考线: 20% 危险, 50% 紧张
-          afterBuildTicks: (axis) => {
-            // 通过 dataset + 注释 (不画线了, 改用 annotation plugin)
-          },
         },
       },
     },
-    plugins: [{
-      id: "thresholdLines",
-      afterDraw(chart) {
-        const { ctx, chartArea, scales } = chart;
-        const yScale = scales.y;
-        if (!yScale || !chartArea) return;
-        // 20% 危险线
-        const y20 = yScale.getPixelForValue(20);
-        ctx.save();
-        ctx.strokeStyle = dangerLine;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.moveTo(chartArea.left, y20);
-        ctx.lineTo(chartArea.right, y20);
-        ctx.stroke();
-        // 标签
-        ctx.fillStyle = dangerLine;
-        ctx.font = "10px Geist Mono, monospace";
-        ctx.fillText("20% 危险", chartArea.right - 50, y20 - 4);
-        // 50% 紧张线
-        const y50 = yScale.getPixelForValue(50);
-        ctx.strokeStyle = warnLine;
-        ctx.beginPath();
-        ctx.moveTo(chartArea.left, y50);
-        ctx.lineTo(chartArea.right, y50);
-        ctx.stroke();
-        ctx.fillStyle = warnLine;
-        ctx.fillText("50% 紧张", chartArea.right - 50, y50 - 4);
-        ctx.restore();
-      },
-    }],
+    plugins: [thresholdPlugin],
   });
 }
 
