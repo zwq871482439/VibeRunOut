@@ -2394,33 +2394,69 @@ async function renderTrendChart(providers) {
     wrap.innerHTML = `<div class="tc-empty">${icon("clock", 32)}<div>暂无历史数据, 等几分钟积累</div></div>`;
     return;
   }
-  // 收集所有时间点
-  const labels = [];
-  const seriesByCombo = {};  // `${pid}|${ring}` -> [percent or null]
+  // 收集所有时间点 (按时间排序, 重复合并)
+  const labelMap = new Map();
   for (const rec of history) {
     const d = new Date(rec.ts);
-    labels.push(d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }));
+    const key = d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+    labelMap.set(key, d);
+  }
+  const labels = [...labelMap.keys()];
+  const labelToIdx = new Map(labels.map((l, i) => [l, i]));
+  const seriesByCombo = {};  // `${pid}|${ring}` -> { combo, data: [null,...] }
+  for (const combo of combos) {
+    seriesByCombo[`${combo.pid}|${combo.ring}`] = { ...combo, data: new Array(labels.length).fill(null) };
+  }
+  for (const rec of history) {
+    const d = new Date(rec.ts);
+    const label = d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+    const idx = labelToIdx.get(label);
+    if (idx === undefined) continue;
     for (const combo of combos) {
       const key = `${combo.pid}|${combo.ring}`;
-      if (!seriesByCombo[key]) seriesByCombo[key] = { ...combo, data: [] };
       const p = (rec.providers || []).find(x => x.id === combo.pid);
       const r = p && (p.rings || []).find(x => x.title === combo.ring);
-      seriesByCombo[key].data.push(r ? r.percent : null);
+      if (r) seriesByCombo[key].data[idx] = r.percent;
     }
   }
+  // 按危险度排序 (剩余% 最少的在前, 视觉上"危险的在上")
+  const sortedCombos = combos.slice().sort((a, b) => {
+    const aData = seriesByCombo[`${a.pid}|${a.ring}`].data.filter(v => v != null);
+    const bData = seriesByCombo[`${b.pid}|${b.ring}`].data.filter(v => v != null);
+    const aMin = aData.length ? Math.min(...aData) : 100;
+    const bMin = bData.length ? Math.min(...bData) : 100;
+    return aMin - bMin;
+  });
   const isDark = document.documentElement.classList.contains("dark");
-  const gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)";
+  const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.05)";
   const tickColor = isDark ? "#8b95a8" : "#64748b";
-  const datasets = Object.values(seriesByCombo).map((s, idx) => {
+  const dangerLine = isDark ? "rgba(248,113,113,0.5)" : "rgba(239,68,68,0.5)";
+  const warnLine = isDark ? "rgba(251,191,36,0.5)" : "rgba(245,158,11,0.5)";
+  const chart = Chart;
+  const datasets = sortedCombos.map((s, idx) => {
     const c = s.accent;
+    const safeColor = c;
     return {
       label: `${s.label} · ${s.ring}`,
-      data: s.data,
-      borderColor: c,
-      backgroundColor: c + "20",
-      tension: 0.3,
-      pointRadius: 1.5,
-      pointHoverRadius: 4,
+      data: seriesByCombo[`${s.pid}|${s.ring}`].data,
+      borderColor: safeColor,
+      backgroundColor: (ctx) => {
+        // 渐变填充: 顶部 30% 透明, 底部 0% 透明
+        const c2 = ctx.chart;
+        if (!c2) return safeColor + "20";
+        const g = c2.ctx.createLinearGradient(0, 0, 0, c2.height || 280);
+        g.addColorStop(0, safeColor + "40");
+        g.addColorStop(1, safeColor + "00");
+        return g;
+      },
+      fill: "origin",
+      tension: 0.4,
+      borderWidth: 2.5,
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      pointBackgroundColor: safeColor,
+      pointBorderColor: isDark ? "#0f1115" : "#ffffff",
+      pointBorderWidth: 1.5,
       spanGaps: true,
     };
   });
@@ -2431,25 +2467,94 @@ async function renderTrendChart(providers) {
   }
   const ctx = wrap.querySelector("canvas").getContext("2d");
   if (trendChartInstance) trendChartInstance.destroy();
-  trendChartInstance = new Chart(ctx, {
+  trendChartInstance = new chart(ctx, {
     type: "line",
     data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
+      interaction: { mode: "index", intersect: false, axis: "x" },
+      layout: { padding: { top: 12, right: 12, bottom: 4, left: 4 } },
       plugins: {
         legend: {
-          labels: { color: tickColor, boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 12 },
+          labels: {
+            color: tickColor,
+            boxWidth: 12, boxHeight: 12, font: { size: 11, weight: "500" },
+            padding: 14, usePointStyle: true, pointStyle: "circle",
+          },
           position: "bottom",
         },
-        tooltip: { intersect: false },
+        tooltip: {
+          intersect: false, mode: "index", padding: 10,
+          titleFont: { size: 12, weight: "600" },
+          bodyFont: { size: 12 },
+          backgroundColor: isDark ? "rgba(20,20,30,0.95)" : "rgba(255,255,255,0.98)",
+          borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+          borderWidth: 1,
+          titleColor: isDark ? "#e8ecf3" : "#0f172a",
+          bodyColor: isDark ? "#a8acb3" : "#64748b",
+          cornerRadius: 8,
+          displayColors: true,
+          boxPadding: 4,
+        },
       },
       scales: {
-        x: { ticks: { color: tickColor, maxTicksLimit: 8, font: { size: 10 } }, grid: { color: gridColor } },
-        y: { min: 0, max: 100, ticks: { color: tickColor, font: { size: 10 }, callback: v => v + "%" }, grid: { color: gridColor } },
+        x: {
+          ticks: {
+            color: tickColor, maxTicksLimit: 6, font: { size: 10 },
+            autoSkip: true, autoSkipPadding: 16,
+          },
+          grid: { color: gridColor, tickColor: gridColor, drawTicks: false },
+          border: { display: false },
+        },
+        y: {
+          min: 0, max: 100,
+          ticks: {
+            color: tickColor, font: { size: 10 },
+            stepSize: 25,
+            callback: (v) => v + "%",
+          },
+          grid: { color: gridColor, tickColor: gridColor },
+          border: { display: false },
+          // 参考线: 20% 危险, 50% 紧张
+          afterBuildTicks: (axis) => {
+            // 通过 dataset + 注释 (不画线了, 改用 annotation plugin)
+          },
+        },
       },
     },
+    plugins: [{
+      id: "thresholdLines",
+      afterDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        const yScale = scales.y;
+        if (!yScale || !chartArea) return;
+        // 20% 危险线
+        const y20 = yScale.getPixelForValue(20);
+        ctx.save();
+        ctx.strokeStyle = dangerLine;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y20);
+        ctx.lineTo(chartArea.right, y20);
+        ctx.stroke();
+        // 标签
+        ctx.fillStyle = dangerLine;
+        ctx.font = "10px Geist Mono, monospace";
+        ctx.fillText("20% 危险", chartArea.right - 50, y20 - 4);
+        // 50% 紧张线
+        const y50 = yScale.getPixelForValue(50);
+        ctx.strokeStyle = warnLine;
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y50);
+        ctx.lineTo(chartArea.right, y50);
+        ctx.stroke();
+        ctx.fillStyle = warnLine;
+        ctx.fillText("50% 紧张", chartArea.right - 50, y50 - 4);
+        ctx.restore();
+      },
+    }],
   });
 }
 
