@@ -83,8 +83,11 @@ def _default_config():
             for t in BUILTIN_TEMPLATES
         ],
         "alerts": [],
-        "sort_mode": "manual",   # "manual" (按 config 顺序) | "danger" (按剩余% 升序)
-        "ring_display": "ring",   # "ring" (圆环) | "bar" (进度条) | "text" (纯文字)
+        "sort_mode": "manual",        # "manual" (按 config 顺序) | "danger" (按剩余% 升序)
+        "ring_display": "ring",       # "ring" (圆环) | "bar" (进度条) | "text" (纯文字)
+        "trend_mode": "chart",        # "chart" (显示趋势卡) | "hidden" (隐藏)
+        "trend_default_ring": "*",    # 默认选中的维度: "*"=全部 | "5 小时" | "周" | "月"
+        "trend_default_providers": "all",  # "all"=所有 | "first"=第一个
     }
 
 
@@ -1397,30 +1400,12 @@ INDEX_HTML = r"""<!doctype html>
 
     <div class="settings-tabs">
       <button class="active" id="tab-providers-btn" onclick="switchTab('providers')">Providers</button>
+      <button id="tab-elements-btn" onclick="switchTab('elements')"><span id="tab-elements-icon"></span> 元素</button>
       <button id="tab-theme-btn" onclick="switchTab('theme')"><span id="tab-theme-icon"></span> 主题</button>
       <button id="tab-alerts-btn" onclick="switchTab('alerts')"><span id="tab-alerts-icon"></span> 通知中心</button>
     </div>
 
     <div class="tab-panel active" id="tab-providers">
-      <h3>显示选项</h3>
-      <div class="display-row">
-        <div class="display-control">
-          <label>卡片排序</label>
-          <select id="sort-mode" onchange="updateDisplayPref('sort_mode', this.value)">
-            <option value="manual">按我的设置 (拖拽顺序)</option>
-            <option value="danger">按危险度 (最缺的在前)</option>
-          </select>
-        </div>
-        <div class="display-control">
-          <label>限额显示</label>
-          <select id="ring-display" onchange="updateDisplayPref('ring_display', this.value)">
-            <option value="ring">圆环 (Ring)</option>
-            <option value="bar">进度条 (Bar)</option>
-            <option value="text">纯文字 (Text)</option>
-          </select>
-        </div>
-      </div>
-
       <h3>内置模板</h3>
       <div class="template-grid" id="template-grid"></div>
 
@@ -1455,6 +1440,64 @@ INDEX_HTML = r"""<!doctype html>
 }'></textarea>
         <button onclick="addCustom()">Parse & add</button>
       </details>
+    </div>
+
+    <div class="tab-panel" id="tab-elements">
+      <p style="color:var(--muted);font-size:12px;margin:0 0 16px">
+        控制 dashboard 上每种元素的展示方式。改动立即生效 (不刷新)。
+      </p>
+
+      <h3>卡片</h3>
+      <div class="display-row">
+        <div class="display-control">
+          <label>排序</label>
+          <select id="sort-mode" onchange="updateDisplayPref('sort_mode', this.value)">
+            <option value="manual">按我的设置 (拖拽顺序)</option>
+            <option value="danger">按危险度 (最缺的在前)</option>
+          </select>
+        </div>
+      </div>
+
+      <h3>限额指示</h3>
+      <p style="color:var(--muted);font-size:11px;margin:0 0 8px">每张卡片里 5 小时 / 周 / 月 的显示样式</p>
+      <div class="display-row">
+        <div class="display-control">
+          <label>显示样式</label>
+          <select id="ring-display" onchange="updateDisplayPref('ring_display', this.value)">
+            <option value="ring">圆环 (Ring)</option>
+            <option value="bar">进度条 (Bar)</option>
+            <option value="text">纯文字 (Text)</option>
+          </select>
+        </div>
+      </div>
+
+      <h3>趋势卡片</h3>
+      <p style="color:var(--muted);font-size:11px;margin:0 0 8px">底部"📈 趋势"组件卡片的设置</p>
+      <div class="display-row">
+        <div class="display-control">
+          <label>显示模式</label>
+          <select id="trend-mode" onchange="updateDisplayPref('trend_mode', this.value)">
+            <option value="chart">折线图 (Chart)</option>
+            <option value="hidden">隐藏趋势卡片</option>
+          </select>
+        </div>
+        <div class="display-control">
+          <label>默认维度</label>
+          <select id="trend-default-ring" onchange="updateDisplayPref('trend_default_ring', this.value)">
+            <option value="*">所有 (多选 chip)</option>
+            <option value="5 小时">5 小时</option>
+            <option value="周">周</option>
+            <option value="月">月</option>
+          </select>
+        </div>
+        <div class="display-control">
+          <label>默认 provider</label>
+          <select id="trend-default-providers" onchange="updateDisplayPref('trend_default_providers', this.value)">
+            <option value="all">所有已启用</option>
+            <option value="first">第一个 (按顺序)</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="tab-panel" id="tab-theme">
@@ -2102,6 +2145,7 @@ let trendSelected = { providers: new Set(), rings: new Set() };
 const RING_COLOR_PALETTE = ["#2B7FFF", "#7C3AED", "#1F1F1F", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899"];
 
 function renderTrendCard(providers) {
+  if (config.trend_mode === "hidden") return "";
   return `
     <div class="card trend-card">
       <div class="tc-header">
@@ -2126,17 +2170,29 @@ function renderTrendCard(providers) {
 
 function initTrendCard(providers) {
   const okProviders = providers.filter(p => p.ok);
-  // 默认选中第一个 provider + 它的所有维度
+  // 默认选中: 用 config.trend_default_providers 决定
   if (okProviders.length && !trendSelected.providers.size) {
-    trendSelected.providers.add(okProviders[0].id);
-    const rings = new Set();
+    if (config.trend_default_providers === "first") {
+      trendSelected.providers.add(okProviders[0].id);
+    } else {
+      // "all": 全部
+      for (const p of okProviders) trendSelected.providers.add(p.id);
+    }
+    // 默认维度: 用 config.trend_default_ring 决定
+    const allRings = new Set();
     for (const p of okProviders) {
       const sections = normalize(p, p.data);
       if (sections.length && sections[0].kind === "card") {
-        for (const r of (sections[0].rings || [])) rings.add(r.title);
+        for (const r of (sections[0].rings || [])) allRings.add(r.title);
       }
     }
-    trendSelected.rings = rings;
+    if (config.trend_default_ring === "*") {
+      trendSelected.rings = allRings;
+    } else if (allRings.has(config.trend_default_ring)) {
+      trendSelected.rings = new Set([config.trend_default_ring]);
+    } else {
+      trendSelected.rings = allRings;
+    }
   }
 
   // provider chips
@@ -2310,6 +2366,8 @@ async function openSettings() {
   if (tabAlertsIcon) tabAlertsIcon.innerHTML = icon("bell", 14);
   const tabThemeIcon = document.getElementById("tab-theme-icon");
   if (tabThemeIcon) tabThemeIcon.innerHTML = icon("settings", 14);
+  const tabElementsIcon = document.getElementById("tab-elements-icon");
+  if (tabElementsIcon) tabElementsIcon.innerHTML = icon("settings", 14);
 }
 
 function switchTab(name) {
@@ -2344,10 +2402,12 @@ function updateDisplayPref(key, value) {
 }
 
 function syncDisplaySelects() {
-  const sortSel = document.getElementById("sort-mode");
-  if (sortSel) sortSel.value = config.sort_mode || "manual";
-  const ringSel = document.getElementById("ring-display");
-  if (ringSel) ringSel.value = config.ring_display || "ring";
+  const setSel = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setSel("sort-mode", config.sort_mode || "manual");
+  setSel("ring-display", config.ring_display || "ring");
+  setSel("trend-mode", config.trend_mode || "chart");
+  setSel("trend-default-ring", config.trend_default_ring || "*");
+  setSel("trend-default-providers", config.trend_default_providers || "all");
 }
 
 // ---------- 通知规则 CRUD ----------
@@ -2492,6 +2552,9 @@ async function loadConfigAndTemplates() {
   // 兼容老 config (可能缺新字段)
   if (!config.sort_mode) config.sort_mode = "manual";
   if (!config.ring_display) config.ring_display = "ring";
+  if (!config.trend_mode) config.trend_mode = "chart";
+  if (!config.trend_default_ring) config.trend_default_ring = "*";
+  if (!config.trend_default_providers) config.trend_default_providers = "all";
   templates = tpl;
 }
 
