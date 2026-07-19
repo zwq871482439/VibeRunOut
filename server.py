@@ -1921,9 +1921,9 @@ function renderStatus(p) {
         if (rem < minRemaining) minRemaining = rem;
       }
     }
-    // 状态短句: 用户一眼看到, 不靠 hover
+    // 状态: 正常时只显示 LED 绿点 (无文字), 紧张/见底才显示文字
     let cls = ""; // 默认绿
-    let text = "通畅";
+    let text = ""; // 正常: 无文字
     if (minRemaining < 20) { cls = "err"; text = "紧张"; }
     else if (minRemaining < 50) { cls = "warn"; text = "略紧"; }
     return `<span class="status ${cls}"><span class="led"></span>${text}</span>`;
