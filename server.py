@@ -2479,8 +2479,55 @@ async function renderTrendChart(providers) {
         const r = pp && (pp.rings || []).find(x => x.title === ring);
         if (r) points.push({ x: rec.ts, y: 100 - r.percent });
       }
+      // 断线检测: 相邻点时间差超过 ring 窗口的 1/4 时, 视为离线段 (server 没启动),
+      // 在中间插入 null 让线断开 (spanGaps: false)
+      const gapThreshold = windowMs / 4;  // 5h ring: 6 小时; 7d: 42 小时; 30d: 7.5 天
+      const segmented = [];
+      for (let i = 0; i < points.length; i++) {
+        if (i > 0 && (points[i].x - points[i-1].x) > gapThreshold) {
+          segmented.push(null);  // 断点
+        }
+        segmented.push(points[i]);
+      }
+      points.length = 0;
+      points.push(...segmented);
+
       // Downsample: 点太密时取等间隔子集 (避免折线锯齿, 提升渲染速度)
+      // 注意: 保留 null (断点), 不能被采样跳过
       const MAX_POINTS = 80;
+      const validCount = points.filter(p => p != null).length;
+      if (validCount > MAX_POINTS) {
+        // 把 null 之间的段分开采样, 保证断点不被合并
+        const segments = [];  // [[非 null 点...], ...]
+        let cur = [];
+        for (const p of points) {
+          if (p === null) {
+            if (cur.length) segments.push(cur);
+            cur = [];
+          } else {
+            cur.push(p);
+          }
+        }
+        if (cur.length) segments.push(cur);
+        const out = [];
+        for (const seg of segments) {
+          if (seg.length <= 2) {
+            out.push(...seg);
+          } else {
+            const step = (seg.length - 1) / Math.min(seg.length - 1, MAX_POINTS / segments.length);
+            const n = Math.min(seg.length, Math.ceil(MAX_POINTS / segments.length));
+            for (let k = 0; k < n; k++) {
+              out.push(seg[Math.round(k * (seg.length - 1) / (n - 1))]);
+            }
+          }
+          out.push(null);  // 段间断点
+        }
+        // 最后一个如果是 null 去掉
+        if (out[out.length - 1] === null) out.pop();
+        points.length = 0;
+        points.push(...out);
+      }
+      if (points.some(p => p != null)) series.push({ pid, label, accent, points });
       if (points.length > MAX_POINTS) {
         const step = (points.length - 1) / (MAX_POINTS - 1);
         const sampled = [];
@@ -2499,15 +2546,15 @@ async function renderTrendChart(providers) {
 
     // 排序 series: 危险的在上
     series.sort((a, b) => {
-      const aMin = Math.min(...a.points.map(p => p.y));
-      const bMin = Math.min(...b.points.map(p => p.y));
+      const aMin = Math.min(...a.points.filter(p => p != null).map(p => p.y));
+      const bMin = Math.min(...b.points.filter(p => p != null).map(p => p.y));
       return aMin - bMin;
     });
 
     // 该 row 当前 (最新) 最小剩余%
     let rowMin = 100;
     for (const s of series) {
-      const min = Math.min(...s.points.map(p => p.y));
+      const min = Math.min(...s.points.filter(p => p != null).map(p => p.y));
       if (min < rowMin) rowMin = min;
     }
     const rowCls = rowMin < 20 ? "danger" : rowMin < 50 ? "warn" : "ok";
@@ -2520,11 +2567,15 @@ async function renderTrendChart(providers) {
       <div class="tc-row-head">
         <span class="tc-row-title">${escapeHtml(titleText)}</span>
         <div class="tc-row-legend">
-          ${series.map(s => `<span class="tc-row-legend-item">
-            <span class="tc-row-legend-dot" style="background:${s.accent}"></span>
-            <span class="tc-row-legend-label">${escapeHtml(s.label)}</span>
-            <span class="tc-row-legend-val">${Math.round(s.points[s.points.length - 1].y)}%</span>
-          </span>`).join("")}
+          ${series.map(s => {
+            const lastValid = [...s.points].reverse().find(p => p != null);
+            const valStr = lastValid ? `${Math.round(lastValid.y)}%` : '—';
+            return `<span class="tc-row-legend-item">
+              <span class="tc-row-legend-dot" style="background:${s.accent}"></span>
+              <span class="tc-row-legend-label">${escapeHtml(s.label)}</span>
+              <span class="tc-row-legend-val">${valStr}</span>
+            </span>`;
+          }).join("")}
         </div>
       </div>
       <div class="tc-row-canvas-wrap"><canvas></canvas></div>
@@ -2568,7 +2619,7 @@ async function renderTrendChart(providers) {
       pointHoverBackgroundColor: s.accent,
       pointHoverBorderColor: "#fff",
       pointHoverBorderWidth: 2,
-      spanGaps: true,
+      spanGaps: false,  // null 点处断线 (server 离线时不连过去)
     }));
 
     const chart = new Chart(canvas, {
