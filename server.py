@@ -1022,93 +1022,65 @@ html.theme-brand .header h1 {
     width: 8px; height: 8px; border-radius: 50%;
     background: currentColor;
   }
-  .trend-card .tc-canvas-wrap {
-    position: relative;
-    height: 320px;
-    padding: 4px 0 0;
-    border-radius: var(--radius);
+  .trend-card .trend-rows-wrap {
+    display: flex; flex-direction: column;
+    gap: 12px;
   }
-  .trend-card .tc-summary {
-    display: flex; gap: 14px; flex-wrap: wrap;
-    margin-bottom: 14px;
-  }
-  .trend-card .tc-summary:empty { display: none; }
-  .trend-card .tc-summary-stat {
-    display: inline-flex; align-items: baseline; gap: 6px;
-    padding: 6px 12px;
+  .trend-card .tc-row {
+    display: flex; flex-direction: column;
+    padding: 12px 14px;
     background: var(--card-alt);
     border: 1px solid var(--border);
-    border-radius: 999px;
-    font-size: 12px;
+    border-radius: var(--radius);
+    transition: border-color .2s;
   }
-  .trend-card .tc-summary-stat-dot {
+  .trend-card .tc-row:hover { border-color: var(--border-strong); }
+  .trend-card .tc-row.danger { border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); }
+  .trend-card .tc-row.warn   { border-color: color-mix(in srgb, var(--warning) 35%, var(--border)); }
+  .trend-card .tc-row-head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .trend-card .tc-row-title {
+    font-size: 13px; font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+  .trend-card .tc-row.danger .tc-row-title { color: var(--danger); }
+  .trend-card .tc-row.warn   .tc-row-title { color: var(--warning); }
+  .trend-card .tc-row-legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-left: auto;
+  }
+  .trend-card .tc-row-legend-item {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--muted);
+  }
+  .trend-card .tc-row-legend-dot {
     width: 8px; height: 8px; border-radius: 50%;
     display: inline-block;
   }
-  .trend-card .tc-summary-stat-label {
-    color: var(--muted); font-weight: 500;
-  }
-  .trend-card .tc-summary-stat-val {
+  .trend-card .tc-row-legend-label { font-weight: 500; }
+  .trend-card .tc-row-legend-val {
     font-family: var(--font-mono);
-    font-weight: 600; font-size: 13px;
+    font-weight: 600; font-size: 12px;
     color: var(--text);
   }
-  .trend-card .tc-summary-stat-val.ok { color: var(--success); }
-  .trend-card .tc-summary-stat-val.warn { color: var(--warning); }
-  .trend-card .tc-summary-stat-val.danger { color: var(--danger); }
+  .trend-card .tc-row-canvas-wrap {
+    position: relative;
+    height: 100px;
+    width: 100%;
+  }
+  .trend-card .tc-row-empty {
+    height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 12px;
   }
   .trend-card .tc-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     color: var(--muted); font-size: 13px; gap: 8px;
-    height: 100%;
-  }
-  .trend-tooltip {
-    min-width: 180px; max-width: 240px;
-    padding: 10px 12px;
-    background: color-mix(in srgb, var(--card) 90%, transparent);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    box-shadow: var(--shadow-md);
-    font-size: 12px;
-  }
-  .trend-tooltip .tt-title {
-    font-size: 11px;
-    color: var(--muted);
-    font-family: var(--font-mono);
-    margin-bottom: 6px;
-    padding-bottom: 6px;
-    border-bottom: 1px dashed var(--border);
-  }
-  .trend-tooltip .tt-body { display: flex; flex-direction: column; gap: 4px; }
-  .trend-tooltip .tt-row {
-    display: grid;
-    grid-template-columns: 10px 1fr auto;
-    align-items: center;
-    gap: 8px;
-  }
-  .trend-tooltip .tt-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-  }
-  .trend-tooltip .tt-label {
-    color: var(--text);
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .trend-tooltip .tt-val {
-    font-family: var(--font-mono);
-    font-weight: 600;
-    font-size: 13px;
-  }
-  .trend-tooltip .tt-val.ok { color: var(--success); }
-  .trend-tooltip .tt-val.warn { color: var(--warning); }
-  .trend-tooltip .tt-val.danger { color: var(--danger); }
-    height: 200px;
+    padding: 48px 0;
   }
 
   .err {
@@ -2269,7 +2241,7 @@ async function fetchHistory() {
 }
 
 // ---------- 趋势组件卡片 (provider × 维度 全多选) ----------
-let trendChartInstance = null;
+let trendChartInstances = [];  // 每行一个 Chart 实例
 let trendSelected = { providers: new Set(), rings: new Set() };
 
 // 摘要 widget: 顶部整体状态
@@ -2348,8 +2320,7 @@ function renderTrendCard(providers) {
           </div>
         </div>
       </div>
-      <div id="trend-summary-stats" class="tc-summary"></div>
-      <div class="tc-canvas-wrap" id="trend-canvas-wrap">
+      <div class="trend-rows-wrap" id="trend-rows-wrap">
         <div class="tc-empty">${icon("chart", 32)}<div>选择左侧 provider + 维度, 开始对比</div></div>
       </div>
     </div>
@@ -2452,219 +2423,219 @@ function initTrendCardChipStates(providers) {
   });
 }
 
+// ring → 横轴时间窗 (毫秒) + 期望点数
+// 5h 窗口数据保留约 1 天, 周/月 留约 7 天
+function ringWindow(ring) {
+  if (ring === "5 小时") return { windowMs: 24 * 3600 * 1000, maxTicks: 6 };
+  if (ring === "周")     return { windowMs: 7 * 24 * 3600 * 1000, maxTicks: 7 };
+  if (ring === "月")     return { windowMs: 30 * 24 * 3600 * 1000, maxTicks: 6 };
+  return { windowMs: 7 * 24 * 3600 * 1000, maxTicks: 7 };
+}
+
 let currentProviders = [];
+
 async function renderTrendChart(providers) {
   currentProviders = providers;
-  const combos = [];
-  for (const pid of trendSelected.providers) {
-    const p = providers.find(x => x.id === pid);
-    if (!p) continue;
-    const accent = p.color || PROVIDER_ACCENT[pid] || "#2B7FFF";
-    for (const ring of trendSelected.rings) {
-      combos.push({ pid, label: p.label || pid, ring, accent });
-    }
-  }
-  const wrap = document.getElementById("trend-canvas-wrap");
-  // 清掉旧 tooltip 元素, 避免与 empty 状态冲突
-  const oldTip = wrap.querySelector(".trend-tooltip");
-  if (!combos.length) {
-    if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
-    if (oldTip) oldTip.remove();
+
+  // 销毁旧实例
+  for (const c of trendChartInstances) c.destroy();
+  trendChartInstances = [];
+
+  const wrap = document.getElementById("trend-rows-wrap");
+  if (!wrap) return;
+
+  const rings = [...trendSelected.rings];
+  const pids = [...trendSelected.providers];
+
+  if (!pids.length || !rings.length) {
     wrap.innerHTML = `<div class="tc-empty">${icon("chart", 32)}<div>选择左侧 provider + 维度, 开始对比</div></div>`;
     return;
   }
+
   const history = await fetchHistory();
   if (!history.length) {
-    if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
-    if (oldTip) oldTip.remove();
     wrap.innerHTML = `<div class="tc-empty">${icon("clock", 32)}<div>暂无历史数据, 等几分钟积累</div></div>`;
     return;
   }
-  // 收集所有时间点 (按时间排序, 重复合并)
-  const labelMap = new Map();
-  for (const rec of history) {
-    const d = new Date(rec.ts);
-    const key = d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
-    labelMap.set(key, d);
-  }
-  const labels = [...labelMap.keys()];
-  const labelToIdx = new Map(labels.map((l, i) => [l, i]));
-  const seriesByCombo = {};  // `${pid}|${ring}` -> { combo, data: [null,...] }
-  for (const combo of combos) {
-    seriesByCombo[`${combo.pid}|${combo.ring}`] = { ...combo, data: new Array(labels.length).fill(null) };
-  }
-  for (const rec of history) {
-    const d = new Date(rec.ts);
-    const label = d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
-    const idx = labelToIdx.get(label);
-    if (idx === undefined) continue;
-    for (const combo of combos) {
-      const key = `${combo.pid}|${combo.ring}`;
-      const p = (rec.providers || []).find(x => x.id === combo.pid);
-      const r = p && (p.rings || []).find(x => x.title === combo.ring);
-      if (r) seriesByCombo[key].data[idx] = 100 - r.percent;  // 用剩余%, 跟 UI 心智一致 (高 = 充足, 低 = 见底)
+
+  // 解析 history 时间戳
+  const records = history.map(r => ({
+    ts: new Date(r.ts).getTime(),
+    providers: r.providers || [],
+  })).sort((a, b) => a.ts - b.ts);
+
+  const now = records.length ? records[records.length - 1].ts : Date.now();
+
+  // 按 ring 顺序构建 rows
+  wrap.innerHTML = "";
+  for (const ring of rings) {
+    const { windowMs, maxTicks } = ringWindow(ring);
+    const since = now - windowMs;
+    // 该 ring 内所有 provider 的最近剩余% 数据
+    const series = [];
+    for (const pid of pids) {
+      const p = providers.find(x => x.id === pid);
+      if (!p) continue;
+      const accent = p.color || PROVIDER_ACCENT[pid] || "#2B7FFF";
+      const label = p.label || pid;
+      // 该 ring 的所有时间点 (按时间过滤)
+      const points = [];
+      for (const rec of records) {
+        if (rec.ts < since) continue;
+        const pp = rec.providers.find(x => x.id === pid);
+        const r = pp && (pp.rings || []).find(x => x.title === ring);
+        if (r) points.push({ x: rec.ts, y: 100 - r.percent });
+      }
+      if (points.length) series.push({ pid, label, accent, points });
     }
-  }
-  // 按危险度排序 (剩余% 最少的在前, 视觉上"危险的在上")
-  const sortedCombos = combos.slice().sort((a, b) => {
-    const aData = seriesByCombo[`${a.pid}|${a.ring}`].data.filter(v => v != null);
-    const bData = seriesByCombo[`${b.pid}|${b.ring}`].data.filter(v => v != null);
-    const aMin = aData.length ? Math.min(...aData) : 100;
-    const bMin = bData.length ? Math.min(...bData) : 100;
-    return aMin - bMin;
-  });
-  const isDark = document.documentElement.classList.contains("dark");
-  // 极淡网格线 + 文字
-  const gridColor = isDark ? "rgba(255,255,255,0.04)" : "rgba(15,23,42,0.03)";
-  const tickColor = isDark ? "rgba(255,255,255,0.5)" : "rgba(15,23,42,0.45)";
 
-  // 渲染顶部小摘要: 每个组合当前剩余 (一键看现状)
-  const summaryEl = document.getElementById("trend-summary-stats");
-  if (summaryEl) {
-    summaryEl.innerHTML = sortedCombos.map(s => {
-      const ds = seriesByCombo[`${s.pid}|${s.ring}`].data.filter(v => v != null);
-      const last = ds.length ? ds[ds.length - 1] : null;
-      const cls = last == null ? "ok" : (last < 20 ? "danger" : last < 50 ? "warn" : "ok");
-      const val = last == null ? "—" : `${Math.round(last)}%`;
-      return `<div class="tc-summary-stat">
-        <span class="tc-summary-stat-dot" style="background:${s.accent}"></span>
-        <span class="tc-summary-stat-label">${escapeHtml(s.label)} · ${escapeHtml(s.ring)}</span>
-        <span class="tc-summary-stat-val ${cls}">${val}</span>
-      </div>`;
-    }).join("");
-  }
+    // 排序 series: 危险的在上
+    series.sort((a, b) => {
+      const aMin = Math.min(...a.points.map(p => p.y));
+      const bMin = Math.min(...b.points.map(p => p.y));
+      return aMin - bMin;
+    });
 
-  const datasets = sortedCombos.map((s) => {
-    const c = s.accent;
-    return {
-      label: `${s.label} · ${s.ring}`,
-      data: seriesByCombo[`${s.pid}|${s.ring}`].data,
-      borderColor: c,
-      // 真渐变填充 (iOS 液态玻璃感)
-      backgroundColor: function(context) {
-        const chart = context.chart;
-        const { ctx, chartArea } = chart;
-        if (!chartArea) return c + "20";
-        const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-        g.addColorStop(0, c + "60");   // 顶部 38% 透明
-        g.addColorStop(0.6, c + "15"); // 中间过渡
-        g.addColorStop(1, c + "00");   // 底部 0 透明
-        return g;
-      },
-      fill: "origin",
-      tension: 0.42,
+    // 该 row 当前 (最新) 最小剩余%
+    let rowMin = 100;
+    for (const s of series) {
+      const min = Math.min(...s.points.map(p => p.y));
+      if (min < rowMin) rowMin = min;
+    }
+    const rowCls = rowMin < 20 ? "danger" : rowMin < 50 ? "warn" : "ok";
+
+    // 构造 row DOM
+    const row = document.createElement("div");
+    row.className = `tc-row ${rowCls}`;
+    const titleText = ring === "5 小时" ? `${ring} (1 天)` : ring === "周" ? `${ring} (7 天)` : ring === "月" ? `${ring} (30 天)` : ring;
+    row.innerHTML = `
+      <div class="tc-row-head">
+        <span class="tc-row-title">${escapeHtml(titleText)}</span>
+        <div class="tc-row-legend">
+          ${series.map(s => `<span class="tc-row-legend-item">
+            <span class="tc-row-legend-dot" style="background:${s.accent}"></span>
+            <span class="tc-row-legend-label">${escapeHtml(s.label)}</span>
+            <span class="tc-row-legend-val">${Math.round(s.points[s.points.length - 1].y)}%</span>
+          </span>`).join("")}
+        </div>
+      </div>
+      <div class="tc-row-canvas-wrap"><canvas></canvas></div>
+    `;
+    wrap.appendChild(row);
+
+    if (!series.length) {
+      row.querySelector(".tc-row-canvas-wrap").innerHTML = `<div class="tc-row-empty">暂无数据</div>`;
+      continue;
+    }
+
+    const canvas = row.querySelector("canvas");
+    const isDark = document.documentElement.classList.contains("dark");
+    const gridColor = isDark ? "rgba(255,255,255,0.04)" : "rgba(15,23,42,0.03)";
+    const tickColor = isDark ? "rgba(255,255,255,0.5)" : "rgba(15,23,42,0.45)";
+    const dangerColor = isDark ? "rgba(248,113,113,0.35)" : "rgba(239,68,68,0.3)";
+    const warnColor = isDark ? "rgba(251,191,36,0.35)" : "rgba(245,158,11,0.3)";
+
+    // 用 Chart.js 时间轴需要 adapter (chartjs-adapter-luxon), 这里用 type:'time' 不行 (没装 adapter)
+    // 改用 linear x 轴 + 显式 ticks (按 maxTicks 等分)
+    const minTs = since;
+    const maxTs = now;
+    const ticks = [];
+    for (let i = 0; i <= maxTicks; i++) {
+      const t = minTs + (maxTs - minTs) * (i / maxTicks);
+      ticks.push(t);
+    }
+
+    const datasets = series.map(s => ({
+      label: s.label,
+      data: s.points.map(p => p.x).map((t, i) => ({ x: t, y: s.points[i].y })),
+      borderColor: s.accent,
+      backgroundColor: s.accent,  // 不填充, 只用于点
+      fill: false,                // 关键: 不填充面积
+      tension: 0.4,
       borderWidth: 2,
       borderCapStyle: "round",
       borderJoinStyle: "round",
       pointRadius: 0,
-      pointHoverRadius: 6,
-      pointHoverBackgroundColor: c,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: s.accent,
       pointHoverBorderColor: "#fff",
       pointHoverBorderWidth: 2,
       spanGaps: true,
-    };
-  });
+    }));
 
-  // 自定义 HTML tooltip (玻璃感) - 只创建一次, 复用
-  let tooltipEl = wrap.querySelector(".trend-tooltip");
-  wrap.style.position = "relative";
-  if (!tooltipEl) {
-    tooltipEl = document.createElement("div");
-    tooltipEl.className = "trend-tooltip";
-    tooltipEl.style.cssText = "position:absolute;pointer-events:none;opacity:0;transition:opacity .12s;z-index:10;";
-  }
-  // 清掉旧 tooltip 内容 (避免闪上次的值)
-  tooltipEl.style.opacity = "0";
-  tooltipEl.innerHTML = "";
-
-  // 确保 canvas 存在 (innerHTML 会清掉 tooltip, 所以重建后要 append)
-  if (!wrap.querySelector("canvas")) {
-    wrap.innerHTML = '<canvas></canvas>';
-    wrap.appendChild(tooltipEl);
-  } else {
-    // wrap 已有 canvas, tooltip 元素若不在 wrap 内则 append (应对刷新场景)
-    if (!tooltipEl.isConnected || !wrap.contains(tooltipEl)) {
-      wrap.appendChild(tooltipEl);
-    }
-  }
-  const ctx = wrap.querySelector("canvas").getContext("2d");
-  if (trendChartInstance) trendChartInstance.destroy();
-  trendChartInstance = new Chart(ctx, {
-    type: "line",
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false, axis: "x" },
-      layout: { padding: { top: 8, right: 14, bottom: 4, left: 4 } },
-      plugins: {
-        legend: { display: false },  // 顶部摘要替代
-        tooltip: {
-          enabled: false,  // 用自定义的
-          intersect: false, mode: "index",
-          external: (context) => {
-            const tooltip = context.tooltip;
-            if (!tooltipEl.isConnected) return;
-            if (tooltip.opacity === 0) {
-              tooltipEl.style.opacity = "0";
-              return;
-            }
-            const items = tooltip.dataPoints || [];
-            const html = `
-              <div class="tt-title">${escapeHtml(tooltip.title?.[0] || "")}</div>
-              <div class="tt-body">
-                ${items.map(it => {
-                  const ds = it.dataset;
-                  const v = it.parsed.y;
-                  const cls = v < 20 ? "danger" : v < 50 ? "warn" : "ok";
-                  return `<div class="tt-row">
-                    <span class="tt-dot" style="background:${ds.borderColor}"></span>
-                    <span class="tt-label">${escapeHtml(ds.label)}</span>
-                    <span class="tt-val ${cls}">${Math.round(v)}%</span>
-                  </div>`;
-                }).join("")}
-              </div>`;
-            tooltipEl.innerHTML = html;
-            tooltipEl.style.opacity = "1";
-            // 定位: 鼠标右侧优先, 边界保护
-            const rect = wrap.getBoundingClientRect();
-            const x = tooltip.caretX + 16;
-            const y = tooltip.caretY - 10;
-            tooltipEl.style.left = (x + 240 > rect.width ? x - 256 : x) + "px";
-            tooltipEl.style.top = y + "px";
-          },
-        },
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: tickColor, maxTicksLimit: 7, font: { size: 10, family: "var(--font-mono)" },
-            autoSkip: true, autoSkipPadding: 18,
-          },
-          grid: { display: false },
-          border: { display: false },
-        },
-        y: {
-          min: 0, max: 100,
-          ticks: {
-            color: tickColor, font: { size: 10, family: "var(--font-mono)" },
-            stepSize: 25,
-            callback: (v) => v + "%",
+    const chart = new Chart(canvas, {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: false, axis: "x" },
+        layout: { padding: { top: 4, right: 8, bottom: 0, left: 4 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            intersect: false, mode: "nearest",
+            backgroundColor: isDark ? "rgba(28,28,32,0.95)" : "rgba(255,255,255,0.95)",
+            borderColor: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)",
+            borderWidth: 1,
+            titleColor: isDark ? "#f5f5f7" : "#0f172a",
+            bodyColor: isDark ? "rgba(255,255,255,0.85)" : "#334155",
+            titleFont: { size: 11, weight: "500", family: "var(--font-mono)" },
+            bodyFont: { size: 12, weight: "600" },
+            cornerRadius: 8,
             padding: 8,
+            displayColors: true,
+            boxWidth: 8, boxHeight: 8, boxPadding: 4,
+            callbacks: {
+              title: (items) => {
+                const t = items[0]?.parsed?.x;
+                if (!t) return "";
+                const d = new Date(t);
+                return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+              },
+              label: (item) => `${item.dataset.label}  ${Math.round(item.parsed.y)}%`,
+            },
           },
-          grid: {
-            color: (ctx) => ctx.tick.value === 0 ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.08)") : gridColor,
-            tickColor: gridColor,
-            drawTicks: false,
-          },
-          border: { display: false },
         },
+        scales: {
+          x: {
+            type: "linear",
+            min: minTs, max: maxTs,
+            ticks: {
+              color: tickColor, maxTicksLimit: maxTicks + 1, font: { size: 10, family: "var(--font-mono)" },
+              autoSkip: false,
+              stepSize: (maxTs - minTs) / maxTicks,
+              callback: (v) => {
+                const d = new Date(v);
+                // 5h 窗口: 只显示 hh:mm; 周/月: 显示 MM/DD
+                if (windowMs <= 24 * 3600 * 1000) {
+                  return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
+                }
+                return `${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getDate().toString().padStart(2, "0")}`;
+              },
+            },
+            grid: { display: false },
+            border: { display: false },
+          },
+          y: {
+            min: 0, max: 100,
+            ticks: {
+              color: tickColor, font: { size: 10, family: "var(--font-mono)" },
+              stepSize: 50, maxTicksLimit: 3,
+              callback: (v) => v + "%", padding: 6,
+            },
+            grid: {
+              color: (ctx) => ctx.tick.value === 0 ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.08)") : gridColor,
+              tickColor: gridColor, drawTicks: false,
+            },
+            border: { display: false },
+          },
+        },
+        animation: { duration: 300, easing: "easeOutCubic" },
       },
-      animation: { duration: 400, easing: "easeOutCubic" },
-      elements: { line: { borderJoinStyle: "round" } },
-    },
-    plugins: [],
-  });
+    });
+    trendChartInstances.push(chart);
+  }
 }
 
 function refreshCharts() {
