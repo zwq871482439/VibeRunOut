@@ -3502,13 +3502,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/api/config":
             cfg = reload_config()  # 每次 GET 都重读盘, 实现外部编辑也热生效
-            # mask key 字段
-            masked = {
-                "providers": [
-                    {**p, "key": ("***" + p["key"][-4:]) if p.get("key") else ""}
-                    for p in cfg.get("providers", [])
-                ]
-            }
+            # mask key 字段 (只覆盖 providers 里的 key, 其他字段原样返回)
+            masked = dict(cfg)  # 复制所有顶层字段: widgets / trend_mode / alerts 等
+            masked["providers"] = [
+                {**p, "key": ("***" + p["key"][-4:]) if p.get("key") else ""}
+                for p in cfg.get("providers", [])
+            ]
             self._send_json(200, masked)
             return
 
