@@ -390,12 +390,13 @@ INDEX_HTML = r"""<!doctype html>
      ============================================================ */
 
   /* 强调色 (任何主题都可叠加) */
+  html.accent-glass  { --accent: #94a3b8; --accent-2: #64748b; --accent-fg: #ffffff; }   /* 液态玻璃 - 冷灰 (默认) */
   html.accent-aurora { --accent: #8b5cf6; --accent-2: #34d399; --accent-fg: #ffffff; }
   html.accent-berry  { --accent: #7c3aed; --accent-2: #ec4899; --accent-fg: #ffffff; }
   html.accent-ocean  { --accent: #6366f1; --accent-2: #06b6d4; --accent-fg: #ffffff; }
   html.accent-sunset { --accent: #f59e0b; --accent-2: #ec4899; --accent-fg: #ffffff; }
   /* 没 accent 时的回退 */
-  :root { --accent: #6366f1; --accent-2: #06b6d4; --accent-fg: #ffffff; }
+  :root { --accent: #94a3b8; --accent-2: #64748b; --accent-fg: #ffffff; }
 
   /* 1. GLASS 主题 (旗舰) - 玻璃拟态 + 渐变光晕 */
   html.theme-glass {
@@ -408,9 +409,9 @@ INDEX_HTML = r"""<!doctype html>
   }
   html.theme-glass {
     background:
-      radial-gradient(ellipse 800px 600px at 20% 0%, rgba(139,92,246,0.18), transparent 60%),
-      radial-gradient(ellipse 700px 500px at 80% 100%, rgba(52,211,153,0.15), transparent 60%),
-      radial-gradient(ellipse 500px 400px at 50% 50%, rgba(236,72,153,0.10), transparent 60%),
+      radial-gradient(ellipse 800px 600px at 20% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 80% 100%, color-mix(in srgb, var(--accent-2) 20%, transparent), transparent 60%),
+      radial-gradient(ellipse 500px 400px at 50% 50%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
       linear-gradient(180deg, #f8f7fc 0%, #f0eef8 100%);
     color: #1d1d2c;
     min-height: 100vh;
@@ -432,7 +433,7 @@ INDEX_HTML = r"""<!doctype html>
     --danger-bg: rgba(239,68,68,0.12);
     --danger-border: rgba(239,68,68,0.3);
     --focus: var(--accent);
-    --focus-ring: rgba(139,92,246,0.25);
+    --focus-ring: color-mix(in srgb, var(--accent) 25%, transparent);
     --toggle-off: rgba(0,0,0,0.15);
     --toggle-on: #10b981;
     --err-bg: rgba(239,68,68,0.12);
@@ -444,9 +445,9 @@ INDEX_HTML = r"""<!doctype html>
   }
   html.theme-glass.dark {
     background:
-      radial-gradient(ellipse 800px 600px at 20% 0%, rgba(139,92,246,0.32), transparent 60%),
-      radial-gradient(ellipse 700px 500px at 80% 100%, rgba(52,211,153,0.22), transparent 60%),
-      radial-gradient(ellipse 500px 400px at 50% 50%, rgba(236,72,153,0.18), transparent 60%),
+      radial-gradient(ellipse 800px 600px at 20% 0%, color-mix(in srgb, var(--accent) 36%, transparent), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 80% 100%, color-mix(in srgb, var(--accent-2) 26%, transparent), transparent 60%),
+      radial-gradient(ellipse 500px 400px at 50% 50%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 60%),
       linear-gradient(180deg, #0e0a1f 0%, #0a0817 100%);
     color: #e8e8f0;
   }
@@ -466,7 +467,7 @@ INDEX_HTML = r"""<!doctype html>
     --danger: #f87171;
     --danger-bg: rgba(248,113,113,0.15);
     --danger-border: rgba(248,113,113,0.3);
-    --focus-ring: rgba(139,92,246,0.35);
+    --focus-ring: color-mix(in srgb, var(--accent) 35%, transparent);
     --toggle-off: rgba(255,255,255,0.15);
     --toggle-on: #34d399;
     --err-bg: rgba(248,113,113,0.15);
@@ -1993,7 +1994,7 @@ async function load() {
           config.widgets.push({ id: `provider:${p.id}`, type: "provider", provider_id: p.id, enabled: true });
         }
       }
-      config.widgets.push({ id: "trend", type: "trend", enabled: true });
+      config.widgets.push({ id: "trend", type: "trend", enabled: true, trend_default_ring: "*", trend_default_providers: "all" });
     }
     const data = await quotaRes.json();
     const main = document.getElementById("main");
@@ -2067,6 +2068,7 @@ const THEMES = [
   { id: "brand",    name: "Brand",    desc: "Vercel 渐变, 立体色块",     font: "Vibe" },
 ];
 const ACCENTS = [
+  { id: "glass",  name: "Glass 液态玻璃",  primary: "#94a3b8", secondary: "#64748b", text: "白" },
   { id: "aurora", name: "Aurora 极光",  primary: "#8b5cf6", secondary: "#34d399", text: "白" },
   { id: "berry",  name: "Berry 紫粉",  primary: "#7c3aed", secondary: "#ec4899", text: "白" },
   { id: "ocean",  name: "Ocean 靛青",  primary: "#6366f1", secondary: "#06b6d4", text: "白" },
@@ -2077,7 +2079,7 @@ const savedThemeName = localStorage.getItem("vibeout-theme-name");
 const savedAccent = localStorage.getItem("vibeout-accent");
 const savedDarkPref = localStorage.getItem("vibeout-theme-dark"); // "light" | "dark" | null (=auto)
 let currentTheme = savedThemeName || "glass";
-let currentAccent = savedAccent || "aurora";
+let currentAccent = savedAccent || "glass";
 let currentDark;
 if (savedDarkPref === "dark") currentDark = true;
 else if (savedDarkPref === "light") currentDark = false;
@@ -2658,31 +2660,18 @@ function widgetSettingsHTML(w, i) {
 
 function updateWidgetField(i, key, value) {
   config.widgets[i][key] = value;
-  // 即时生效
-  if (currentProviders.length) load();
-  // 持久化
-  fetch("/api/config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
   // 趋势默认维度/provider 改了, 重置 trendSelected
   if (key === "trend_default_ring" || key === "trend_default_providers") {
     trendSelected = { providers: new Set(), rings: new Set() };
-    if (currentProviders.length) load();
   }
+  // 先 POST 持久化, 等服务器写完再 load() (否则 load() 读到的还是旧 disk)
+  saveAndReload();
 }
 
-function toggleWidget(i) {
+async function toggleWidget(i) {
   config.widgets[i].enabled = !config.widgets[i].enabled;
   renderWidgetsList();
-  if (currentProviders.length) load();  // 重新渲染
-  // 立即持久化 (用户重启 dashboard 还在)
-  fetch("/api/config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
+  await saveAndReload();
 }
 
 let widgetDragSrc = null;
@@ -2696,7 +2685,7 @@ function onWidgetDragOver(event, i) {
   event.dataTransfer.dropEffect = "move";
   event.currentTarget.classList.add("drag-over");
 }
-function onWidgetDrop(event, targetIdx) {
+async function onWidgetDrop(event, targetIdx) {
   event.preventDefault();
   event.currentTarget.classList.remove("drag-over");
   if (widgetDragSrc === null || widgetDragSrc === targetIdx) return;
@@ -2704,13 +2693,7 @@ function onWidgetDrop(event, targetIdx) {
   config.widgets.splice(targetIdx, 0, moved);
   widgetDragSrc = null;
   renderWidgetsList();
-  if (currentProviders.length) load();
-  // 立即持久化
-  fetch("/api/config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
+  await saveAndReload();
 }
 function onWidgetDragEnd(event) {
   event.currentTarget.classList.remove("dragging");
@@ -2872,7 +2855,7 @@ async function loadConfigAndTemplates() {
         config.widgets.push({ id: `provider:${p.id}`, type: "provider", provider_id: p.id, enabled: true });
       }
     }
-    config.widgets.push({ id: "trend", type: "trend", enabled: true });
+    config.widgets.push({ id: "trend", type: "trend", enabled: true, trend_default_ring: "*", trend_default_providers: "all" });
   }
   // 同步重置 trend 已选 (让 config.trend_default_* 立即生效)
   trendSelected = { providers: new Set(), rings: new Set() };
@@ -3089,6 +3072,26 @@ async function saveSettings() {
   } else {
     const t = await (resCfg.ok ? resAlerts : resCfg).text();
     showToast("保存失败: " + t, "error");
+  }
+}
+
+// 单点保存 helper: POST /api/config → 等服务器写完 → load() (确保读到最新 disk)
+// 用于 widget toggle / 字段更新 / 拖拽排序等即时生效场景
+async function saveAndReload() {
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      showToast("保存失败: " + t, "error");
+      return;
+    }
+    if (currentProviders.length) await load();
+  } catch (e) {
+    showToast("保存失败: " + e, "error");
   }
 }
 
