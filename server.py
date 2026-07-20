@@ -2640,7 +2640,10 @@ async function renderTrendChart(providers) {
 
 function refreshCharts() {
   // 主题切换后, 重绘趋势卡片
-  if (currentProviders.length) renderTrendChart(currentProviders);
+  // 注意: 初始化时 applyTheme() 立刻跑一次, currentProviders 可能还未声明 (TDZ)
+  try {
+    if (currentProviders && currentProviders.length) renderTrendChart(currentProviders);
+  } catch (e) { /* TDZ: 还没初始化, 跳过 */ }
 }
 
 async function openSettings() {
