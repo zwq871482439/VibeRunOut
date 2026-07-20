@@ -967,56 +967,147 @@ html.theme-brand .header h1 {
 
   .trend-card {
     grid-column: 1 / -1;
+    overflow: hidden;
   }
   .trend-card .tc-header {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--border);
   }
   .trend-card .tc-title {
     font-size: 14px; font-weight: 600;
     display: inline-flex; align-items: center; gap: 6px;
-    margin-right: 8px;
+    margin-right: 6px;
+    color: var(--text);
   }
+  .trend-card .tc-title svg { color: var(--accent); }
   .trend-card .tc-chips {
-    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
   }
   .trend-card .tc-group {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding-left: 8px; border-left: 1px solid var(--border);
+    display: inline-flex; align-items: center; gap: 8px;
   }
-  .trend-card .tc-group:first-of-type { border-left: 0; padding-left: 0; }
   .trend-card .tc-group-label {
     font-size: 11px; color: var(--muted); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.06em;
   }
   .chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 9px;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 11px;
     border: 1px solid var(--border);
     border-radius: var(--radius-full);
-    background: var(--card);
+    background: var(--card-alt);
     color: var(--muted);
-    font-size: 12px;
+    font-size: 12px; font-weight: 500;
     cursor: pointer;
-    transition: all .15s;
+    transition: all .18s ease;
     user-select: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
-  .chip:hover { border-color: var(--border-strong); }
+  .chip:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+    transform: translateY(-1px);
+  }
   .chip.active {
     background: var(--accent);
     color: white;
     border-color: var(--accent);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent),
+                inset 0 1px 0 rgba(255,255,255,0.2);
   }
   .chip .swatch {
-    width: 8px; height: 8px; border-radius: 2px;
+    width: 8px; height: 8px; border-radius: 50%;
     background: currentColor;
   }
   .trend-card .tc-canvas-wrap {
     position: relative;
-    height: 280px;
+    height: 320px;
+    padding: 4px 0 0;
+    border-radius: var(--radius);
+  }
+  .trend-card .tc-summary {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .trend-card .tc-summary:empty { display: none; }
+  .trend-card .tc-summary-stat {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    padding: 6px 12px;
+    background: var(--card-alt);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+  }
+  .trend-card .tc-summary-stat-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+  .trend-card .tc-summary-stat-label {
+    color: var(--muted); font-weight: 500;
+  }
+  .trend-card .tc-summary-stat-val {
+    font-family: var(--font-mono);
+    font-weight: 600; font-size: 13px;
+    color: var(--text);
+  }
+  .trend-card .tc-summary-stat-val.ok { color: var(--success); }
+  .trend-card .tc-summary-stat-val.warn { color: var(--warning); }
+  .trend-card .tc-summary-stat-val.danger { color: var(--danger); }
   }
   .trend-card .tc-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     color: var(--muted); font-size: 13px; gap: 8px;
+    height: 100%;
+  }
+  .trend-tooltip {
+    min-width: 180px; max-width: 240px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    box-shadow: var(--shadow-md);
+    font-size: 12px;
+  }
+  .trend-tooltip .tt-title {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .trend-tooltip .tt-body { display: flex; flex-direction: column; gap: 4px; }
+  .trend-tooltip .tt-row {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .trend-tooltip .tt-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .trend-tooltip .tt-label {
+    color: var(--text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .trend-tooltip .tt-val {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .trend-tooltip .tt-val.ok { color: var(--success); }
+  .trend-tooltip .tt-val.warn { color: var(--warning); }
+  .trend-tooltip .tt-val.danger { color: var(--danger); }
     height: 200px;
   }
 
@@ -2257,6 +2348,7 @@ function renderTrendCard(providers) {
           </div>
         </div>
       </div>
+      <div id="trend-summary-stats" class="tc-summary"></div>
       <div class="tc-canvas-wrap" id="trend-canvas-wrap">
         <div class="tc-empty">${icon("chart", 32)}<div>选择左侧 provider + 维度, 开始对比</div></div>
       </div>
@@ -2373,14 +2465,18 @@ async function renderTrendChart(providers) {
     }
   }
   const wrap = document.getElementById("trend-canvas-wrap");
+  // 清掉旧 tooltip 元素, 避免与 empty 状态冲突
+  const oldTip = wrap.querySelector(".trend-tooltip");
   if (!combos.length) {
     if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+    if (oldTip) oldTip.remove();
     wrap.innerHTML = `<div class="tc-empty">${icon("chart", 32)}<div>选择左侧 provider + 维度, 开始对比</div></div>`;
     return;
   }
   const history = await fetchHistory();
   if (!history.length) {
     if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+    if (oldTip) oldTip.remove();
     wrap.innerHTML = `<div class="tc-empty">${icon("clock", 32)}<div>暂无历史数据, 等几分钟积累</div></div>`;
     return;
   }
@@ -2406,7 +2502,7 @@ async function renderTrendChart(providers) {
       const key = `${combo.pid}|${combo.ring}`;
       const p = (rec.providers || []).find(x => x.id === combo.pid);
       const r = p && (p.rings || []).find(x => x.title === combo.ring);
-      if (r) seriesByCombo[key].data[idx] = r.percent;
+      if (r) seriesByCombo[key].data[idx] = 100 - r.percent;  // 用剩余%, 跟 UI 心智一致 (高 = 充足, 低 = 见底)
     }
   }
   // 按危险度排序 (剩余% 最少的在前, 视觉上"危险的在上")
@@ -2419,79 +2515,77 @@ async function renderTrendChart(providers) {
   });
   const isDark = document.documentElement.classList.contains("dark");
   // 极淡网格线 + 文字
-  const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.04)";
-  const tickColor = isDark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.5)";
-  const dangerLine = isDark ? "rgba(248,113,113,0.45)" : "rgba(239,68,68,0.4)";
-  const warnLine = isDark ? "rgba(251,191,36,0.45)" : "rgba(245,158,11,0.4)";
-  // 玻璃 tooltip 背景
-  const tipBg = isDark ? "rgba(28,28,32,0.85)" : "rgba(255,255,255,0.85)";
-  const tipBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
-  const tipTitle = isDark ? "#f5f5f7" : "#0f172a";
-  const tipBody = isDark ? "rgba(255,255,255,0.7)" : "#475569";
-  const datasets = sortedCombos.map((s, idx) => {
+  const gridColor = isDark ? "rgba(255,255,255,0.04)" : "rgba(15,23,42,0.03)";
+  const tickColor = isDark ? "rgba(255,255,255,0.5)" : "rgba(15,23,42,0.45)";
+
+  // 渲染顶部小摘要: 每个组合当前剩余 (一键看现状)
+  const summaryEl = document.getElementById("trend-summary-stats");
+  if (summaryEl) {
+    summaryEl.innerHTML = sortedCombos.map(s => {
+      const ds = seriesByCombo[`${s.pid}|${s.ring}`].data.filter(v => v != null);
+      const last = ds.length ? ds[ds.length - 1] : null;
+      const cls = last == null ? "ok" : (last < 20 ? "danger" : last < 50 ? "warn" : "ok");
+      const val = last == null ? "—" : `${Math.round(last)}%`;
+      return `<div class="tc-summary-stat">
+        <span class="tc-summary-stat-dot" style="background:${s.accent}"></span>
+        <span class="tc-summary-stat-label">${escapeHtml(s.label)} · ${escapeHtml(s.ring)}</span>
+        <span class="tc-summary-stat-val ${cls}">${val}</span>
+      </div>`;
+    }).join("");
+  }
+
+  const datasets = sortedCombos.map((s) => {
     const c = s.accent;
     return {
       label: `${s.label} · ${s.ring}`,
       data: seriesByCombo[`${s.pid}|${s.ring}`].data,
       borderColor: c,
-      // 真渐变填充 (iOS 液态玻璃感) - Chart.js v4 支持 function context
+      // 真渐变填充 (iOS 液态玻璃感)
       backgroundColor: function(context) {
         const chart = context.chart;
         const { ctx, chartArea } = chart;
         if (!chartArea) return c + "20";
         const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-        g.addColorStop(0, c + "55");   // 顶部 33% 透明
+        g.addColorStop(0, c + "60");   // 顶部 38% 透明
+        g.addColorStop(0.6, c + "15"); // 中间过渡
         g.addColorStop(1, c + "00");   // 底部 0 透明
         return g;
       },
       fill: "origin",
-      tension: 0.45,  // 更平滑 (Apple style)
-      borderWidth: 1.8,  // 更细的线
-      pointRadius: 2.5,  // 更小的点
-      pointHoverRadius: 5,
-      pointBackgroundColor: c,
-      pointBorderColor: isDark ? "rgba(0,0,0,0.6)" : "#ffffff",
-      pointBorderWidth: 1.5,
+      tension: 0.42,
+      borderWidth: 2,
+      borderCapStyle: "round",
+      borderJoinStyle: "round",
+      pointRadius: 0,
+      pointHoverRadius: 6,
+      pointHoverBackgroundColor: c,
+      pointHoverBorderColor: "#fff",
+      pointHoverBorderWidth: 2,
       spanGaps: true,
     };
   });
 
-  // 自定义 plugin: 阈值参考线 (20% 危险 + 50% 紧张)
-  const thresholdPlugin = {
-    id: "thresholdLines",
-    afterDraw(chart) {
-      const { ctx, chartArea, scales } = chart;
-      const yScale = scales.y;
-      if (!yScale || !chartArea) return;
-      ctx.save();
-      // 20% 危险线
-      const y20 = yScale.getPixelForValue(20);
-      ctx.strokeStyle = dangerLine;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(chartArea.left, y20);
-      ctx.lineTo(chartArea.right, y20);
-      ctx.stroke();
-      ctx.fillStyle = dangerLine;
-      ctx.font = "10px Geist Mono, monospace";
-      ctx.fillText("20% 危险", chartArea.right - 50, y20 - 4);
-      // 50% 紧张线
-      const y50 = yScale.getPixelForValue(50);
-      ctx.strokeStyle = warnLine;
-      ctx.beginPath();
-      ctx.moveTo(chartArea.left, y50);
-      ctx.lineTo(chartArea.right, y50);
-      ctx.stroke();
-      ctx.fillStyle = warnLine;
-      ctx.fillText("50% 紧张", chartArea.right - 50, y50 - 4);
-      ctx.restore();
-    },
-  };
+  // 自定义 HTML tooltip (玻璃感) - 只创建一次, 复用
+  let tooltipEl = wrap.querySelector(".trend-tooltip");
+  wrap.style.position = "relative";
+  if (!tooltipEl) {
+    tooltipEl = document.createElement("div");
+    tooltipEl.className = "trend-tooltip";
+    tooltipEl.style.cssText = "position:absolute;pointer-events:none;opacity:0;transition:opacity .12s;z-index:10;";
+  }
+  // 清掉旧 tooltip 内容 (避免闪上次的值)
+  tooltipEl.style.opacity = "0";
+  tooltipEl.innerHTML = "";
 
-  // 确保 canvas 存在
+  // 确保 canvas 存在 (innerHTML 会清掉 tooltip, 所以重建后要 append)
   if (!wrap.querySelector("canvas")) {
     wrap.innerHTML = '<canvas></canvas>';
+    wrap.appendChild(tooltipEl);
+  } else {
+    // wrap 已有 canvas, tooltip 元素若不在 wrap 内则 append (应对刷新场景)
+    if (!tooltipEl.isConnected || !wrap.contains(tooltipEl)) {
+      wrap.appendChild(tooltipEl);
+    }
   }
   const ctx = wrap.querySelector("canvas").getContext("2d");
   if (trendChartInstance) trendChartInstance.destroy();
@@ -2502,54 +2596,74 @@ async function renderTrendChart(providers) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false, axis: "x" },
-      layout: { padding: { top: 12, right: 12, bottom: 4, left: 4 } },
+      layout: { padding: { top: 8, right: 14, bottom: 4, left: 4 } },
       plugins: {
-        legend: {
-          labels: {
-            color: tickColor,
-            boxWidth: 12, boxHeight: 12, font: { size: 11, weight: "500" },
-            padding: 14, usePointStyle: true, pointStyle: "circle",
-          },
-          position: "bottom",
-        },
+        legend: { display: false },  // 顶部摘要替代
         tooltip: {
-          intersect: false, mode: "index", padding: 12,
-          titleFont: { size: 12, weight: "600" },
-          bodyFont: { size: 12, weight: "500" },
-          backgroundColor: tipBg,
-          borderColor: tipBorder,
-          borderWidth: 1,
-          titleColor: tipTitle,
-          bodyColor: tipBody,
-          cornerRadius: 12,  // 苹果风格大圆角
-          displayColors: true,
-          boxPadding: 4,
-          boxWidth: 8, boxHeight: 8,
-          padding: 10,
+          enabled: false,  // 用自定义的
+          intersect: false, mode: "index",
+          external: (context) => {
+            const tooltip = context.tooltip;
+            if (!tooltipEl.isConnected) return;
+            if (tooltip.opacity === 0) {
+              tooltipEl.style.opacity = "0";
+              return;
+            }
+            const items = tooltip.dataPoints || [];
+            const html = `
+              <div class="tt-title">${escapeHtml(tooltip.title?.[0] || "")}</div>
+              <div class="tt-body">
+                ${items.map(it => {
+                  const ds = it.dataset;
+                  const v = it.parsed.y;
+                  const cls = v < 20 ? "danger" : v < 50 ? "warn" : "ok";
+                  return `<div class="tt-row">
+                    <span class="tt-dot" style="background:${ds.borderColor}"></span>
+                    <span class="tt-label">${escapeHtml(ds.label)}</span>
+                    <span class="tt-val ${cls}">${Math.round(v)}%</span>
+                  </div>`;
+                }).join("")}
+              </div>`;
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.opacity = "1";
+            // 定位: 鼠标右侧优先, 边界保护
+            const rect = wrap.getBoundingClientRect();
+            const x = tooltip.caretX + 16;
+            const y = tooltip.caretY - 10;
+            tooltipEl.style.left = (x + 240 > rect.width ? x - 256 : x) + "px";
+            tooltipEl.style.top = y + "px";
+          },
         },
       },
       scales: {
         x: {
           ticks: {
-            color: tickColor, maxTicksLimit: 6, font: { size: 10 },
-            autoSkip: true, autoSkipPadding: 16,
+            color: tickColor, maxTicksLimit: 7, font: { size: 10, family: "var(--font-mono)" },
+            autoSkip: true, autoSkipPadding: 18,
           },
-          grid: { color: gridColor, tickColor: gridColor, drawTicks: false },
+          grid: { display: false },
           border: { display: false },
         },
         y: {
           min: 0, max: 100,
           ticks: {
-            color: tickColor, font: { size: 10 },
+            color: tickColor, font: { size: 10, family: "var(--font-mono)" },
             stepSize: 25,
             callback: (v) => v + "%",
+            padding: 8,
           },
-          grid: { color: gridColor, tickColor: gridColor },
+          grid: {
+            color: (ctx) => ctx.tick.value === 0 ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.08)") : gridColor,
+            tickColor: gridColor,
+            drawTicks: false,
+          },
           border: { display: false },
         },
       },
+      animation: { duration: 400, easing: "easeOutCubic" },
+      elements: { line: { borderJoinStyle: "round" } },
     },
-    plugins: [thresholdPlugin],
+    plugins: [],
   });
 }
 
