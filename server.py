@@ -378,7 +378,8 @@ INDEX_HTML = r"""<!doctype html>
 <meta charset="utf-8">
 <title>VibeRunOut — vibe 见底警告</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="icon" type="image/svg+xml" href="/favicon.ico">
+<script src="/static/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&family=Berkeley+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -2486,6 +2487,21 @@ async function renderTrendChart(providers) {
         const r = pp && (pp.rings || []).find(x => x.title === ring);
         if (r) points.push({ x: rec.ts, y: 100 - r.percent });
       }
+      // Downsample: 点太密时取等间隔子集 (避免折线锯齿, 提升渲染速度)
+      const MAX_POINTS = 80;
+      if (points.length > MAX_POINTS) {
+        const step = (points.length - 1) / (MAX_POINTS - 1);
+        const sampled = [];
+        for (let k = 0; k < MAX_POINTS; k++) {
+          sampled.push(points[Math.round(k * step)]);
+        }
+        // 保留最后一个点 (确保是最新的)
+        if (sampled[sampled.length - 1] !== points[points.length - 1]) {
+          sampled[sampled.length - 1] = points[points.length - 1];
+        }
+        points.length = 0;
+        points.push(...sampled);
+      }
       if (points.length) series.push({ pid, label, accent, points });
     }
 
@@ -3426,6 +3442,39 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+            return
+
+        # 静态文件 (/static/...) - 本地化 Chart.js 等, 避免走 CDN 触发 Tracking Prevention
+        if self.path.startswith("/static/"):
+            static_dir = Path(__file__).parent / "static"
+            rel = self.path[len("/static/"):]
+            # 防目录穿越
+            file_path = (static_dir / rel).resolve()
+            if not str(file_path).startswith(str(static_dir.resolve())):
+                self.send_error(403)
+                return
+            if not file_path.is_file():
+                self.send_error(404)
+                return
+            ct = "application/javascript" if file_path.suffix == ".js" else "application/octet-stream"
+            body = file_path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", ct)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        # favicon: 内联 SVG (避免 404, 不需要文件)
+        if self.path == "/favicon.ico":
+            svg = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="#94a3b8" stroke-width="3"/><path d="M16 4 A12 12 0 0 1 28 16" stroke="#94a3b8" stroke-width="3" fill="none" stroke-linecap="round"/></svg>'
+            # 浏览器要 ico, 但 svg 也能用 data uri; 这里返回 png-like svg 当作 ico
+            self.send_response(200)
+            self.send_header("Content-Type", "image/svg+xml")
+            self.send_header("Content-Length", str(len(svg)))
+            self.end_headers()
+            self.wfile.write(svg)
             return
 
         if self.path == "/api/quota":
