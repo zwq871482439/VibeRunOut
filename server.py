@@ -1495,7 +1495,6 @@ html.theme-brand .header h1 {
     <div class="hdr-meta"><span class="meta" id="updated">--</span></div>
   </div>
   <div class="actions">
-    <button class="hdr-btn icon-only" onclick="toggleTheme()" id="theme-btn" title="切换主题"></button>
     <button class="hdr-btn icon-only" onclick="toggleBellPanel()" id="bell-btn" title="通知中心"><span class="bell-badge" id="bell-badge" style="display:none">0</span></button>
     <button class="hdr-btn icon-only" onclick="openSettings()" title="设置"></button>
     <button class="hdr-btn" id="refresh-btn" onclick="load()"></button>
@@ -1616,18 +1615,13 @@ function icon(name, size = 16) {
 
 // ---------- 主题图标 (随 currentDark 变 sun/moon) ----------
 function refreshHdrIcons() {
-  const themeBtn = document.getElementById("theme-btn");
-  if (themeBtn) themeBtn.innerHTML = icon(currentDark ? "sun" : "moon", 16);
+  // 深色按钮暂时隐藏 (各主题深色模式待打磨), 不再渲染主题按钮
   const bellBtn = document.getElementById("bell-btn");
   if (bellBtn) bellBtn.innerHTML = icon("bell", 16) + '<span class="bell-badge" id="bell-badge" style="display:none">0</span>';
   const setBtn = document.querySelector('button[onclick="openSettings()"]');
   if (setBtn) setBtn.innerHTML = icon("settings", 16);
   const refreshBtn = document.getElementById("refresh-btn");
   if (refreshBtn) refreshBtn.innerHTML = icon("refresh", 14) + ' Refresh';
-}
-function toggleTheme() {
-  currentDark = !currentDark;
-  applyTheme();
 }
 
 const PROVIDER_ACCENT = {
@@ -2145,13 +2139,10 @@ const ACCENTS = [
 // 当前选择 (默认)
 const savedThemeName = localStorage.getItem("vibeout-theme-name");
 const savedAccent = localStorage.getItem("vibeout-accent");
-const savedDarkPref = localStorage.getItem("vibeout-theme-dark"); // "light" | "dark" | null (=auto)
 let currentTheme = savedThemeName || "glass";
 let currentAccent = savedAccent || "glass";
-let currentDark;
-if (savedDarkPref === "dark") currentDark = true;
-else if (savedDarkPref === "light") currentDark = false;
-else currentDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+// 深色模式: 暂时强制关闭 (各主题深色配色需要单独打磨, 之后再开放)
+let currentDark = false;
 
 function applyTheme() {
   try {
@@ -2163,10 +2154,11 @@ function applyTheme() {
       .join(" ");
     html.classList.add(`theme-${currentTheme}`);
     html.classList.add(`accent-${currentAccent}`);
-    if (currentDark) html.classList.add("dark");
+    if (currentDark) html.classList.add("dark"); else html.classList.remove("dark");
     localStorage.setItem("vibeout-theme-name", currentTheme);
     localStorage.setItem("vibeout-accent", currentAccent);
-    localStorage.setItem("vibeout-theme-dark", currentDark ? "dark" : "light");
+    // 清掉旧的 dark 偏好 (深色切换已下线, 避免老缓存卡在 dark)
+    localStorage.removeItem("vibeout-theme-dark");
     refreshHdrIcons();
     refreshCharts();
   } catch (e) {
