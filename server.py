@@ -2030,11 +2030,15 @@ async function load() {
       }
       main.innerHTML = html.join("");
       // 趋势卡单独追加 (因为它要横跨整行 + 独立 init)
-      const trendEl = renderTrendCard(data.providers);
-      if (trendEl) {
-        main.insertAdjacentHTML("beforeend", trendEl);
+      // 只有 trend widget 存在 + enabled 才渲染 (避免在 Settings 关掉后还显示)
+      const trendW = config.widgets.find(x => x.type === "trend");
+      if (trendW && trendW.enabled !== false) {
+        const trendEl = renderTrendCard(data.providers);
+        if (trendEl) {
+          main.insertAdjacentHTML("beforeend", trendEl);
+        }
+        initTrendCard(data.providers);
       }
-      initTrendCard(data.providers);
     }
     // 全局告警条 (顶部): 最危险的那条
     renderGlobalAlert(data.providers);
